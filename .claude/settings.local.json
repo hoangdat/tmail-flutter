@@ -5,7 +5,11 @@
       "Bash(mkdir:*)",
       "Bash(find:*)",
       "Bash(grep:*)",
-      "Bash(done)"
+      "Bash(done)",
+      "Skill(research)",
+      "WebSearch",
+      "Bash(bash:*)",
+      "Bash(ls:*)"
     ]
   }
 }

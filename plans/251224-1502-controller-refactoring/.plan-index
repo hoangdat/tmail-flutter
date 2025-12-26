@@ -1,0 +1,22 @@
+Controller Refactoring Plan - Documentation Index
+
+START HERE:
+1. README.md - Quick start guide
+2. SUMMARY.md - Detailed highlights (recommended first read)
+
+IMPLEMENTATION GUIDES:
+3. getx-scoped-binding-strategy.md - GetX DI with scoped bindings (PRIMARY APPROACH)
+4. controller-layering.md - 4-layer architecture
+5. spr-splitting-strategy.md - Splitting large controllers
+
+ARCHITECTURE DETAILS:
+6. isolation-dependency-reduction.md - Breaking circular dependencies
+7. view-state-management.md - State management strategies
+8. ui-reactivity.md - Reactive UI patterns
+9. extensibility-framework.md - Open-Closed Principle
+
+EXECUTION:
+10. migration-roadmap.md - 12-week migration plan
+11. plan.md - Complete plan overview
+
+KEY DECISION: Using GetX Bindings (not GetIt) for scoped lifecycle management.
