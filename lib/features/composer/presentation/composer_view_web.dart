@@ -17,6 +17,7 @@ import 'package:tmail_ui_user/features/composer/presentation/extensions/handle_i
 import 'package:tmail_ui_user/features/composer/presentation/extensions/handle_keyboard_shortcut_actions_extension.dart';
 import 'package:tmail_ui_user/features/composer/presentation/extensions/handle_recipients_collapsed_extensions.dart';
 import 'package:tmail_ui_user/features/composer/presentation/extensions/mark_as_important_extension.dart';
+import 'package:tmail_ui_user/features/composer/presentation/extensions/open_drive_picker_extension.dart';
 import 'package:tmail_ui_user/features/composer/presentation/extensions/preview_upload_file_extension.dart';
 import 'package:tmail_ui_user/features/composer/presentation/extensions/remove_draggable_email_address_between_recipient_fields_extension.dart';
 import 'package:tmail_ui_user/features/composer/presentation/model/prefix_recipient_state.dart';
@@ -549,6 +550,7 @@ class ComposerView extends GetWidget<ComposerController> {
                               isMarkAsImportant: controller.isMarkAsImportant.value,
                               openRichToolbarAction: controller.richTextWebController!.toggleFormattingOptions,
                               attachFileAction: () => controller.openFilePickerByType(context, FileType.any),
+                              attachFromDriveAction: () => controller.openDrivePicker(context),
                               insertImageAction: () => controller.insertImage(context, constraints.maxWidth),
                               deleteComposerAction: controller.handleClickDeleteComposer,
                               saveToDraftAction: () => controller.handleClickSaveAsDraftsButton(context),
@@ -826,6 +828,7 @@ class ComposerView extends GetWidget<ComposerController> {
                               isMarkAsImportant: controller.isMarkAsImportant.value,
                               openRichToolbarAction: controller.richTextWebController!.toggleFormattingOptions,
                               attachFileAction: () => controller.openFilePickerByType(context, FileType.any),
+                              attachFromDriveAction: () => controller.openDrivePicker(context),
                               insertImageAction: () => controller.insertImage(context, constraints.maxWidth),
                               deleteComposerAction: controller.handleClickDeleteComposer,
                               saveToDraftAction: () => controller.handleClickSaveAsDraftsButton(context),

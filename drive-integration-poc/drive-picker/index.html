@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Drive File Picker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      color: #202124;
+      background: #fff;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid #e0e0e0;
+      background: #fff;
+    }
+
+    header h1 {
+      font-size: 16px;
+      font-weight: 500;
+      color: #202124;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    header h1 svg { flex-shrink: 0; }
+
+    .status-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: #e8f0fe;
+      color: #1a73e8;
+      font-weight: 500;
+    }
+
+    .file-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      gap: 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+      border: none;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+    }
+
+    .file-item:hover { background: #f1f3f4; }
+    .file-item:active { background: #e8f0fe; }
+
+    .file-icon {
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      font-size: 20px;
+    }
+
+    .file-info { flex: 1; min-width: 0; }
+
+    .file-name {
+      font-size: 14px;
+      font-weight: 400;
+      color: #202124;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-meta {
+      font-size: 12px;
+      color: #5f6368;
+      margin-top: 2px;
+    }
+
+    .file-select-btn {
+      font-size: 12px;
+      color: #1a73e8;
+      opacity: 0;
+      transition: opacity 0.15s;
+      white-space: nowrap;
+    }
+
+    .file-item:hover .file-select-btn { opacity: 1; }
+
+    footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 10px 16px;
+      border-top: 1px solid #e0e0e0;
+      gap: 8px;
+      background: #fff;
+    }
+
+    .btn {
+      padding: 7px 18px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+
+    .btn-cancel {
+      background: transparent;
+      color: #1a73e8;
+    }
+
+    .btn-cancel:hover { background: #e8f0fe; }
+
+    #log {
+      position: fixed;
+      bottom: 56px;
+      left: 0;
+      right: 0;
+      font-size: 11px;
+      padding: 4px 16px;
+      background: #fef9e7;
+      color: #856404;
+      border-top: 1px solid #ffeaa0;
+      display: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>
+    Drive File Picker
+  </h1>
+  <span class="status-badge" id="statusBadge">Connecting…</span>
+</header>
+
+<div class="file-list" id="fileList"></div>
+
+<div id="log"></div>
+
+<footer>
+  <button class="btn btn-cancel" id="cancelBtn">Cancel</button>
+</footer>
+
+<script>
+  // ---------------------------------------------------------------------------
+  // Config
+  // ---------------------------------------------------------------------------
+  const params = new URLSearchParams(window.location.search);
+  const TARGET_ORIGIN = params.get('parentOrigin') || '*';
+
+  if (TARGET_ORIGIN === '*') {
+    console.warn(
+      '[DrivePicker] parentOrigin not set — using "*" as postMessage target. ' +
+      'For production, pass ?parentOrigin=https://your-tmail-host'
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Fake file data
+  // ---------------------------------------------------------------------------
+  const FILES = [
+    {
+      id: 'file001',
+      name: 'Q1-2026-Report.pdf',
+      size: 2097152,
+      contentType: 'application/pdf',
+      icon: '📄',
+      contentUrl: 'https://drive.example.com/download/file001',
+    },
+    {
+      id: 'file002',
+      name: 'Project-Proposal.docx',
+      size: 524288,
+      contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      icon: '📝',
+      contentUrl: 'https://drive.example.com/download/file002',
+    },
+    {
+      id: 'file003',
+      name: 'Budget-2026.xlsx',
+      size: 786432,
+      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      icon: '📊',
+      contentUrl: 'https://drive.example.com/download/file003',
+    },
+    {
+      id: 'file004',
+      name: 'Team-Photo.png',
+      size: 3145728,
+      contentType: 'image/png',
+      icon: '🖼️',
+      contentUrl: 'https://drive.example.com/download/file004',
+    },
+    {
+      id: 'file005',
+      name: 'meeting-notes.txt',
+      size: 8192,
+      contentType: 'text/plain',
+      icon: '📃',
+      contentUrl: 'https://drive.example.com/download/file005',
+    },
+  ];
+
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
+  }
+
+  function shortType(contentType) {
+    const map = {
+      'application/pdf': 'PDF',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'Excel',
+      'image/png': 'PNG Image',
+      'image/jpeg': 'JPEG Image',
+      'text/plain': 'Text',
+    };
+    return map[contentType] || contentType;
+  }
+
+  function showLog(msg) {
+    const el = document.getElementById('log');
+    el.textContent = msg;
+    el.style.display = 'block';
+    clearTimeout(showLog._t);
+    showLog._t = setTimeout(() => { el.style.display = 'none'; }, 4000);
+  }
+
+  function postToParent(payload) {
+    const origin = TARGET_ORIGIN;
+    // Send as JSON string to avoid JS↔Dart object conversion issues
+    const message = JSON.stringify(payload);
+    console.log('[DrivePicker] postMessage →', origin, message);
+    window.parent.postMessage(message, origin);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Render file list
+  // ---------------------------------------------------------------------------
+  function renderFiles() {
+    const list = document.getElementById('fileList');
+    list.innerHTML = '';
+
+    FILES.forEach((file) => {
+      const btn = document.createElement('button');
+      btn.className = 'file-item';
+      btn.setAttribute('aria-label', 'Select ' + file.name);
+      btn.innerHTML = `
+        <span class="file-icon">${file.icon}</span>
+        <span class="file-info">
+          <span class="file-name">${file.name}</span>
+          <span class="file-meta">${shortType(file.contentType)} · ${formatSize(file.size)}</span>
+        </span>
+        <span class="file-select-btn">Select</span>
+      `;
+
+      btn.addEventListener('click', () => {
+        postToParent({
+          type: 'file-selected',
+          metadata: {
+            name: file.name,
+            size: file.size,
+            contentType: file.contentType,
+          },
+          contentUrl: file.contentUrl,
+        });
+        showLog('Sent: file-selected — ' + file.name);
+      });
+
+      list.appendChild(btn);
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Cancel button
+  // ---------------------------------------------------------------------------
+  document.getElementById('cancelBtn').addEventListener('click', () => {
+    postToParent({ type: 'cancelled' });
+    showLog('Sent: cancelled');
+  });
+
+  // ---------------------------------------------------------------------------
+  // Incoming message handler (from TMail parent)
+  // ---------------------------------------------------------------------------
+  const ALLOWED_ORIGINS = TARGET_ORIGIN === '*'
+    ? null   // null means allow all when targetOrigin is wildcard (POC mode)
+    : [TARGET_ORIGIN];
+
+  window.addEventListener('message', (event) => {
+    // Origin validation
+    if (ALLOWED_ORIGINS !== null && !ALLOWED_ORIGINS.includes(event.origin)) {
+      console.warn('[DrivePicker] Rejected message from untrusted origin:', event.origin);
+      return;
+    }
+
+    const data = event.data;
+    if (!data || typeof data !== 'object') return;
+
+    // Handle both string (from Dart) and object data
+    let parsed = data;
+    if (typeof data === 'string') {
+      try { parsed = JSON.parse(data); } catch(e) { return; }
+    }
+
+    console.log('[DrivePicker] Received message:', parsed);
+
+    if (parsed.type === 'init' && parsed.mode === 'file-picker') {
+      document.getElementById('statusBadge').textContent = 'Ready';
+      document.getElementById('statusBadge').style.background = '#e6f4ea';
+      document.getElementById('statusBadge').style.color = '#137333';
+      showLog('Init received — picker ready (origin: ' + event.origin + ')');
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Init
+  // ---------------------------------------------------------------------------
+  renderFiles();
+</script>
+</body>
+</html>

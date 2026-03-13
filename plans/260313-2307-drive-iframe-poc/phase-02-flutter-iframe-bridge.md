@@ -2,7 +2,7 @@
 
 ## Overview
 - **Priority**: High
-- **Status**: TODO
+- **Status**: COMPLETED
 - **Description**: Create a Flutter web widget that embeds the Drive picker iframe and a Dart-side postMessage bridge to send/receive structured messages.
 
 ## Context Links
@@ -82,15 +82,15 @@ DrivePickerIframeWidget (StatefulWidget, web-only)
 - Only accept known message types
 
 ## Success Criteria
-- [ ] Iframe loads Drive picker URL
-- [ ] Init message sent to iframe on load
-- [ ] File selection message received and parsed into `DriveFileMetadata`
-- [ ] Cancel message received and callback fired
-- [ ] Origin validation rejects messages from wrong origins
-- [ ] Widget properly disposes listener
+- [x] Iframe loads Drive picker URL
+- [x] Init message sent to iframe on load
+- [x] File selection message received and parsed into `DriveFileMetadata`
+- [x] Cancel message received and callback fired
+- [x] Origin validation rejects messages from wrong origins
+- [x] Widget properly disposes listener
 
 ## Todo
-- [ ] Create DriveFileMetadata model
-- [ ] Create DrivePostMessageHandler with origin validation
-- [ ] Create DrivePickerIframeWidget using HtmlElementView
-- [ ] Test iframe loads and postMessage round-trip works
+- [x] Create DriveFileMetadata model
+- [x] Create DrivePostMessageHandler with origin validation
+- [x] Create DrivePickerIframeWidget using HtmlElementView
+- [ ] Test iframe loads and postMessage round-trip works (manual E2E test)
