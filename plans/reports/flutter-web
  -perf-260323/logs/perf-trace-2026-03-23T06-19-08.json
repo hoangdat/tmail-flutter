@@ -1,0 +1,341 @@
+{
+  "timestamp": "2026-03-23T06:15:01.959Z",
+  "appUrl": "http://localhost:2025",
+  "analysisType": "authenticated-cold-start",
+  "phases": {
+    "coldStart": {
+      "roomsReached": false,
+      "traceFilePath": "/Users/datph/FlutterProject/tmail-flutter/plans/reports/flutter-web\n  -perf-260323/logs/perf-trace-raw.json",
+      "firstSyncTiming": {
+        "startMs": null,
+        "endMs": null,
+        "durationMs": null
+      },
+      "ttfbMs": 1,
+      "domInteractiveMs": 39,
+      "domCompleteMs": 761,
+      "loadEventMs": 761,
+      "firstPaintMs": 68,
+      "fcpMs": 68,
+      "longTaskCount": 0,
+      "longTaskTotalMs": 0,
+      "maxLongTaskMs": 0,
+      "longTaskDetails": [],
+      "transferSizeKB": 14,
+      "currentUrl": "http://localhost:2025/dashboard/b7643780-d500-11f0-ac4b-19cea8e13760?type=normal&context=184eaa70-674f-11ee-8e67-ad746e08b822",
+      "currentHash": ""
+    },
+    "snapshot": {
+      "url": "http://localhost:2025/dashboard/b7643780-d500-11f0-ac4b-19cea8e13760?type=normal&context=184eaa70-674f-11ee-8e67-ad746e08b822",
+      "hash": "",
+      "domNodes": 65,
+      "canvasElements": 0,
+      "renderer": "HTML",
+      "maxDomDepth": 4,
+      "heap": {
+        "usedMB": 109.05,
+        "totalMB": 112.79
+      },
+      "localStorageKeys": 4
+    },
+    "animation": {
+      "context": "idle_rooms_list",
+      "totalFrames": 179,
+      "avgFrameMs": 16.68,
+      "fps": 59.95,
+      "jankyFrames": 0,
+      "jankPct": 0,
+      "p50Ms": 16.7,
+      "p95Ms": 17.7,
+      "p99Ms": 17.8,
+      "maxFrameMs": 19.3
+    },
+    "interactive": {
+      "framesRecorded": 6211,
+      "fps": 51.76,
+      "avgFrameMs": 19.32,
+      "jankPct": 6.33,
+      "p95Ms": 33.7,
+      "p99Ms": 66.8,
+      "maxFrameMs": 299.8,
+      "longTaskCount": 37,
+      "longTaskTotalMs": 3077,
+      "maxLongTaskMs": 305,
+      "longTaskSamples": [
+        {
+          "startMs": 94344,
+          "durationMs": 57
+        },
+        {
+          "startMs": 96810,
+          "durationMs": 62
+        },
+        {
+          "startMs": 101678,
+          "durationMs": 61
+        },
+        {
+          "startMs": 105958,
+          "durationMs": 78
+        },
+        {
+          "startMs": 106085,
+          "durationMs": 93
+        },
+        {
+          "startMs": 108648,
+          "durationMs": 55
+        },
+        {
+          "startMs": 109517,
+          "durationMs": 55
+        },
+        {
+          "startMs": 112282,
+          "durationMs": 54
+        },
+        {
+          "startMs": 112936,
+          "durationMs": 97
+        },
+        {
+          "startMs": 113056,
+          "durationMs": 57
+        }
+      ],
+      "urlsVisited": [
+        "http://localhost:2025/dashboard/b7643780-d500-11f0-ac4b-19cea8e13760?type=normal&context=184eaa70-674f-11ee-8e67-ad746e08b822",
+        "http://localhost:2025/dashboard/1087f430-d003-11f0-ac4b-19cea8e13760?type=normal&context=184eaa70-674f-11ee-8e67-ad746e08b822",
+        "http://localhost:2025/dashboard/100622e0-cc46-11f0-ba02-a9a8d4e9918c?type=normal&context=184eaa70-674f-11ee-8e67-ad746e08b822",
+        "http://localhost:2025/dashboard/c425af90-7f0a-11f0-9363-71acbfa1bbeb?type=normal&context=184eaa70-674f-11ee-8e67-ad746e08b822",
+        "http://localhost:2025/dashboard/b78f6560-6ea6-11f0-9363-71acbfa1bbeb?type=normal&context=184eaa70-674f-11ee-8e67-ad746e08b822",
+        "http://localhost:2025/dashboard/15d40670-6912-11f0-9363-71acbfa1bbeb?type=normal&context=184eaa70-674f-11ee-8e67-ad746e08b822",
+        "http://localhost:2025/dashboard/e7c7dd60-66be-11f0-a8e5-2564ef814c85?type=normal&context=184eaa70-674f-11ee-8e67-ad746e08b822",
+        "http://localhost:2025/dashboard/47c9b130-165f-11f0-bbfa-5bbe2cd2bc40?type=normal&context=184eaa70-674f-11ee-8e67-ad746e08b822"
+      ],
+      "newNetworkRequests": 87,
+      "newMatrixRequests": 0,
+      "newFailedRequests": 0,
+      "slowestNewRequests": [
+        {
+          "url": "https://jmap.govmu.org/publicAsset/habalgobin@govmu.org/43529661-4ced-11f0-ad07-9708705c3a6a",
+          "status": 200,
+          "durationMs": 1527
+        },
+        {
+          "url": "https://jmap.linagora.com/download/94db052675894262fb8644f9517aaf25e8246c5c2eae08b34da40b748f30ec0b/",
+          "status": 200,
+          "durationMs": 1337
+        },
+        {
+          "url": "https://jmap.linagora.com/download/94db052675894262fb8644f9517aaf25e8246c5c2eae08b34da40b748f30ec0b/",
+          "status": 200,
+          "durationMs": 1336
+        },
+        {
+          "url": "https://jmap.linagora.com/jmap",
+          "status": 200,
+          "durationMs": 982
+        },
+        {
+          "url": "https://jmap.linagora.com/upload/94db052675894262fb8644f9517aaf25e8246c5c2eae08b34da40b748f30ec0b",
+          "status": 201,
+          "durationMs": 653
+        }
+      ],
+      "heapBefore": {
+        "usedMB": 109.08,
+        "totalMB": 112.84,
+        "domNodes": 65
+      },
+      "heapAfter": {
+        "usedMB": 142.87,
+        "totalMB": 160.78,
+        "domNodes": 84
+      },
+      "heapGrowthMB": 33.79
+    },
+    "scrollJank": {
+      "context": "rooms_list_scroll",
+      "totalFrames": 299,
+      "avgFrameMs": 19.23,
+      "fps": 51.99,
+      "jankyFrames": 12,
+      "jankPct": 4.01,
+      "p50Ms": 16.7,
+      "p95Ms": 32.5,
+      "p99Ms": 101,
+      "maxFrameMs": 132.6
+    },
+    "memory": {
+      "snapshots": [
+        {
+          "label": "Rooms loaded + 5s",
+          "usedMB": 134.95,
+          "totalMB": 141.6,
+          "domNodes": 84
+        },
+        {
+          "label": "After GC",
+          "usedMB": 134.11,
+          "totalMB": 136.91,
+          "domNodes": 84
+        },
+        {
+          "label": "After scroll + 8s sync",
+          "usedMB": 134.11,
+          "totalMB": 136.91,
+          "domNodes": 84
+        },
+        {
+          "label": "After GC (post-sync)",
+          "usedMB": 134.11,
+          "totalMB": 136.51,
+          "domNodes": 84
+        }
+      ],
+      "growthMB": -0.84,
+      "leakIndicator": "OK"
+    },
+    "network": {
+      "totalRequests": 236,
+      "cachedRequests": 9,
+      "cachePct": 4,
+      "failedRequests": 0,
+      "failedSamples": [],
+      "totalTransferKB": 64991,
+      "matrixRequests": 0,
+      "firstSyncTiming": {
+        "startMs": null,
+        "endMs": null,
+        "durationMs": null
+      },
+      "matrixSyncSamples": [],
+      "webSocketConnections": 1,
+      "wsFramesSent": 1,
+      "wsFramesReceived": 5,
+      "wsSessions": [
+        {
+          "url": "wss://jmap.linagora.com/jmap/ws?ticket=9efb18b5-e695-4f21-b0df-21b7d9926494",
+          "createdAt": 1774246508979
+        }
+      ],
+      "slowestRequests": [
+        {
+          "url": "https://sign-up.stg.lin-saas.com/images/mail/twake-chat-preview.png",
+          "status": 200,
+          "durationMs": 2438
+        },
+        {
+          "url": "https://sign-up.stg.lin-saas.com/images/mail/twake-mail-preview.png",
+          "status": 200,
+          "durationMs": 2437
+        },
+        {
+          "url": "https://sign-up.stg.lin-saas.com/images/mail/twake-chat-beta-logo.png",
+          "status": 200,
+          "durationMs": 2437
+        },
+        {
+          "url": "https://sign-up.stg.lin-saas.com/images/mail/twake-workplace-overview.png",
+          "status": 200,
+          "durationMs": 1809
+        },
+        {
+          "url": "https://sign-up.stg.lin-saas.com/images/mail/appstore.png",
+          "status": 200,
+          "durationMs": 1807
+        },
+        {
+          "url": "https://sign-up.stg.lin-saas.com/images/mail/twake-mail-beta-logo.png",
+          "status": 200,
+          "durationMs": 1784
+        },
+        {
+          "url": "https://sign-up.stg.lin-saas.com/images/mail/googleplay.png",
+          "status": 200,
+          "durationMs": 1538
+        },
+        {
+          "url": "https://jmap.govmu.org/publicAsset/habalgobin@govmu.org/43529661-4ced-11f0-ad07-9708705c3a6a",
+          "status": 200,
+          "durationMs": 1527
+        },
+        {
+          "url": "https://sign-up.stg.lin-saas.com/images/mail/twake-workplace-beta-logo.png",
+          "status": 200,
+          "durationMs": 1524
+        },
+        {
+          "url": "https://jmap.linagora.com/download/94db052675894262fb8644f9517aaf25e8246c5c2eae08b34da40b748f30ec0b/",
+          "status": 200,
+          "durationMs": 1337
+        }
+      ],
+      "recentRequests": 0
+    },
+    "rendering": {
+      "longTaskCount": 0,
+      "longTaskTotalMs": 0,
+      "maxLongTaskMs": 0,
+      "longTaskDetails": [],
+      "fcpMs": 68,
+      "ttfbMs": 1,
+      "domCompleteMs": 761,
+      "resourceCount": 183,
+      "transferSizeKB": 52463,
+      "domNodes": 84,
+      "canvasCount": 0,
+      "renderer": "HTML",
+      "maxDomDepth": 4
+    },
+    "desktopThrottled": {
+      "viewport": "desktop",
+      "cpuThrottle": "4x",
+      "animation": {
+        "totalFrames": 179,
+        "avgFrameMs": 16.67,
+        "fps": 60,
+        "jankyFrames": 0,
+        "jankPct": 0,
+        "p50Ms": 16.7,
+        "p95Ms": 17.5,
+        "p99Ms": 17.5,
+        "maxFrameMs": 17.6
+      },
+      "scrollJank": {
+        "totalFrames": 179,
+        "avgFrameMs": 16.66,
+        "fps": 60.02,
+        "jankyFrames": 0,
+        "jankPct": 0,
+        "p50Ms": 16.7,
+        "p95Ms": 17.4,
+        "p99Ms": 17.6,
+        "maxFrameMs": 17.7
+      },
+      "heap": {
+        "usedMB": 134.14,
+        "totalMB": 136.51,
+        "domNodes": 84
+      }
+    },
+    "audit": {
+      "serviceWorkerRegistered": true,
+      "serviceWorkerActive": false,
+      "hasWebManifest": true,
+      "manifestHref": "http://localhost:2025/manifest.json",
+      "buttonsTotal": 1,
+      "buttonsWithoutLabel": 1,
+      "inputsWithoutLabel": 8,
+      "imagesWithoutAlt": 0,
+      "renderBlockingScripts": 4,
+      "domNodes": 84,
+      "renderer": "HTML",
+      "metaViewport": true,
+      "metaDescription": true,
+      "preconnectHints": [],
+      "isLocalhost": true
+    }
+  }
+}
