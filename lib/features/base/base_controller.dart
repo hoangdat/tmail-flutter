@@ -127,8 +127,26 @@ abstract class BaseController extends GetxController
     super.onClose();
   }
 
-  void consumeState(Stream<Either<Failure, Success>> newStateStream) async {
-    newStateStream.listen(onData, onError: onError, onDone: onDone);
+  void consumeState(
+    Stream<Either<Failure, Success>> newStateStream, {
+    Function(Success success)? onSuccess,
+    Function(Failure failure)? onFailure,
+  }) async {
+    if (onSuccess != null || onFailure != null) {
+      newStateStream.listen(
+        (result) {
+          viewState.value = result;
+          result.fold(
+            (failure) => (onFailure ?? onDataFailureViewState).call(failure),
+            (success) => onSuccess?.call(success) ?? handleSuccessViewState(success),
+          );
+        },
+        onError: onError,
+        onDone: onDone,
+      );
+    } else {
+      newStateStream.listen(onData, onError: onError, onDone: onDone);
+    }
   }
 
   void dispatchState(Either<Failure, Success> newState) {

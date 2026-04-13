@@ -64,6 +64,15 @@ import 'package:tmail_ui_user/features/thread/presentation/extensions/handle_ema
 import 'package:tmail_ui_user/features/thread/presentation/extensions/handle_keyboard_shortcut_actions_extension.dart';
 import 'package:tmail_ui_user/features/thread/presentation/extensions/list_presentation_email_extensions.dart';
 import 'package:tmail_ui_user/features/thread/presentation/extensions/refresh_thread_detail_extension.dart';
+import 'package:tmail_ui_user/features/base/event_bus/app_event_bus.dart';
+import 'package:tmail_ui_user/features/base/state/mailbox_state_provider.dart';
+import 'package:tmail_ui_user/features/email/presentation/action/cancellation_token.dart';
+import 'package:tmail_ui_user/features/email/presentation/action/email_action_queue.dart';
+import 'package:tmail_ui_user/features/email/presentation/action/mark_as_read_email_action.dart';
+import 'package:tmail_ui_user/features/email/presentation/action/mark_as_read_multiple_email_action.dart';
+import 'package:tmail_ui_user/features/thread/presentation/action/get_emails_in_mailbox_action.dart';
+import 'package:tmail_ui_user/features/email/domain/usecases/mark_as_email_read_interactor.dart';
+import 'package:tmail_ui_user/features/thread/domain/usecases/mark_as_multiple_email_read_interactor.dart';
 import 'package:tmail_ui_user/features/thread/presentation/mixin/email_action_controller.dart';
 import 'package:tmail_ui_user/features/thread/presentation/model/delete_action_type.dart';
 import 'package:tmail_ui_user/features/thread/presentation/model/loading_more_status.dart';
@@ -91,6 +100,12 @@ class ThreadController extends BaseController with EmailActionController {
   final SearchMoreEmailInteractor _searchMoreEmailInteractor;
   final GetEmailByIdInteractor _getEmailByIdInteractor;
   final CleanAndGetEmailsInMailboxInteractor cleanAndGetEmailsInMailboxInteractor;
+
+  late final EmailActionQueue _actionQueue;
+  late final MailboxStateProvider _mailboxStateProvider;
+  final _cancelToken = CancellationToken();
+  StreamSubscription? _getAllEmailSuccessBusSub;
+  StreamSubscription? _getAllEmailFailureBusSub;
 
   final listEmailDrag = <PresentationEmail>[].obs;
   bool rangeSelectionMode = false;
@@ -138,7 +153,10 @@ class ThreadController extends BaseController with EmailActionController {
 
   @override
   void onInit() {
+    _actionQueue = Get.find<EmailActionQueue>();
+    _mailboxStateProvider = Get.find<MailboxStateProvider>();
     _registerObxStreamListener();
+    _registerBusListeners();
     if (PlatformInfo.isWeb) {
       _registerBrowserResizeListener();
       onKeyboardShortcutInit();
@@ -149,12 +167,15 @@ class ThreadController extends BaseController with EmailActionController {
 
   @override
   void onReady() {
-    consumeState(Stream.value(Right(GetAllEmailLoading())));
+    dispatchState(Right(GetAllEmailLoading()));
     super.onReady();
   }
 
   @override
   void onClose() {
+    _cancelToken.cancel();
+    _getAllEmailSuccessBusSub?.cancel();
+    _getAllEmailFailureBusSub?.cancel();
     _currentMemoryMailboxId = null;
     listEmailController.dispose();
     if (PlatformInfo.isWeb) {
@@ -168,9 +189,7 @@ class ThreadController extends BaseController with EmailActionController {
   @override
   void handleSuccessViewState(Success success) {
     super.handleSuccessViewState(success);
-    if (success is GetAllEmailSuccess) {
-      _getAllEmailSuccess(success);
-    } else if (success is LoadMoreEmailsSuccess) {
+    if (success is LoadMoreEmailsSuccess) {
       _loadMoreEmailsSuccess(success);
     } else if (success is SearchEmailSuccess) {
       _searchEmailsSuccess(success);
@@ -215,7 +234,7 @@ class ThreadController extends BaseController with EmailActionController {
     } else if (failure is GetEmailByIdFailure) {
       openingEmail.value = false;
       popAndPush(AppRoutes.unknownRoutePage);
-    } else if (failure is GetAllEmailFailure || failure is CleanAndGetAllEmailFailure) {
+    } else if (failure is CleanAndGetAllEmailFailure) {
       mailboxDashBoardController.updateRefreshAllEmailState(Left(RefreshAllEmailFailure()));
     }
   }
@@ -239,17 +258,64 @@ class ThreadController extends BaseController with EmailActionController {
   void onDone() {
     viewState.value.fold(
       (failure) {
-        if (failure is GetAllEmailFailure ||
-            failure is CleanAndGetAllEmailFailure) {
+        if (failure is CleanAndGetAllEmailFailure) {
           _handleOnDoneGetAllEmailFailure();
         }
       },
-      (success) {
-        if (success is GetAllEmailSuccess) {
-          _handleOnDoneGetAllEmailSuccess(success);
-        }
-      },
+      (_) {},
     );
+  }
+
+  void _registerBusListeners() {
+    final eventBus = Get.find<AppEventBus>();
+    _getAllEmailSuccessBusSub = eventBus.on<GetAllEmailSuccess>().listen(
+      _onGetAllEmailSuccess,
+    );
+    _getAllEmailFailureBusSub = eventBus.on<GetAllEmailFailure>().listen(
+      _onGetAllEmailFailure,
+    );
+  }
+
+  void _onGetAllEmailSuccess(GetAllEmailSuccess success) {
+    final currentMailboxId = success.currentMailboxId;
+    final isVirtualFolder = selectedMailbox?.isVirtualFolder == true;
+
+    if (currentMailboxId != null &&
+        (isVirtualFolder || currentMailboxId != selectedMailboxId)) {
+      return;
+    }
+
+    mailboxDashBoardController.updateRefreshAllEmailState(
+      Right(RefreshAllEmailSuccess()),
+    );
+    mailboxDashBoardController.setCurrentEmailState(success.currentEmailState);
+    mailboxDashBoardController.updateEmailList(success.emailList);
+
+    if (mailboxDashBoardController.isSelectionEnabled()) {
+      mailboxDashBoardController.listEmailSelected.value = listEmailSelected;
+    }
+
+    if (listEmailController.hasClients) {
+      listEmailController.jumpTo(0);
+    }
+
+    // onDone logic
+    if (PlatformInfo.isWeb && mailboxDashBoardController.isEmailListDisplayed) {
+      refocusMailShortcutFocus();
+    }
+    if (_isAutoLoadMore && success.emailList.isNotEmpty) {
+      _performAutomaticallyLoadMoreEmails();
+    } else {
+      canLoadMore = success.emailList.isNotEmpty;
+    }
+  }
+
+  void _onGetAllEmailFailure(GetAllEmailFailure failure) {
+    dispatchState(Left(failure));
+    mailboxDashBoardController.updateRefreshAllEmailState(
+      Left(RefreshAllEmailFailure()),
+    );
+    _handleOnDoneGetAllEmailFailure();
   }
 
   void _initWebSocketQueueHandler() {
@@ -271,7 +337,7 @@ class ThreadController extends BaseController with EmailActionController {
       if (mailbox is PresentationMailbox
           && mailbox.mailboxId != _currentMemoryMailboxId) {
         _currentMemoryMailboxId = mailbox.id;
-        consumeState(Stream.value(Right(GetAllEmailLoading())));
+        dispatchState(Right(GetAllEmailLoading()));
         resetToOriginalValue();
         getAllEmailAction(
           getLatestChanges: mailboxDashBoardController.isFirstSessionLoad,
@@ -596,19 +662,6 @@ class ThreadController extends BaseController with EmailActionController {
     }
   }
 
-  void _handleOnDoneGetAllEmailSuccess(GetAllEmailSuccess success) {
-    if (PlatformInfo.isWeb && mailboxDashBoardController.isEmailListDisplayed) {
-      refocusMailShortcutFocus();
-    }
-    final emailList = success.emailList;
-    log('ThreadController::_handleOnDoneGetAllEmailSuccess: EmailCount = ${emailList.length}');
-    if (_isAutoLoadMore && emailList.isNotEmpty) {
-      _performAutomaticallyLoadMoreEmails();
-    } else {
-      canLoadMore = emailList.isNotEmpty;
-    }
-  }
-
   void _handleOnDoneGetAllEmailFailure() {
     log('ThreadController::_handleOnDoneGetAllEmailFailure');
     if (PlatformInfo.isWeb && mailboxDashBoardController.isEmailListDisplayed) {
@@ -666,15 +719,23 @@ class ThreadController extends BaseController with EmailActionController {
     bool getLatestChanges = true,
     bool forceEmailQuery = false,
   }) {
-    log('ThreadController::_getAllEmailAction:getLatestChanges = $getLatestChanges');
-    if (_session != null &&_accountId != null) {
-      consumeState(_getEmailsInMailboxInteractor.execute(
-        _session!,
-        _accountId!,
+    log('ThreadController::getAllEmailAction:getLatestChanges = $getLatestChanges');
+    if (_session == null || _accountId == null) {
+      dispatchState(Left(GetAllEmailFailure(NotFoundSessionException())));
+      return;
+    }
+    _actionQueue.submit(
+      GetEmailsInMailboxAction(
+        _getEmailsInMailboxInteractor,
+        _mailboxStateProvider,
+        searchController,
         limit: ThreadConstants.defaultLimit,
         sort: EmailSortOrderType.mostRecent.getSortOrder().toNullable(),
         emailFilter: getEmailFilterForLoadMailbox(),
-        propertiesCreated: EmailUtils.getPropertiesForEmailGetMethod(_session!, _accountId!),
+        propertiesCreated: EmailUtils.getPropertiesForEmailGetMethod(
+          _session!,
+          _accountId!,
+        ),
         propertiesUpdated: EmailUtils.getPropertiesForEmailChangeMethod(
           _session!,
           _accountId!,
@@ -682,10 +743,9 @@ class ThreadController extends BaseController with EmailActionController {
         getLatestChanges: getLatestChanges,
         useCache: selectedMailbox?.isCacheable ?? false,
         forceEmailQuery: forceEmailQuery,
-      ));
-    } else {
-      consumeState(Stream.value(Left(GetAllEmailFailure(NotFoundSessionException()))));
-    }
+      ),
+      token: _cancelToken,
+    );
   }
 
   Future<void> refreshAllEmail({bool shouldClearCache = false}) async {
@@ -696,7 +756,7 @@ class ThreadController extends BaseController with EmailActionController {
     if (searchController.isSearchEmailRunning) {
       consumeState(Stream.value(Right(SearchingState())));
     } else {
-      consumeState(Stream.value(Right(GetAllEmailLoading())));
+      dispatchState(Right(GetAllEmailLoading()));
     }
 
     canLoadMore = true;
@@ -1275,11 +1335,11 @@ class ThreadController extends BaseController with EmailActionController {
     switch(actionType) {
       case EmailActionType.markAsRead:
         cancelSelectEmail();
-        markAsReadSelectedMultipleEmail(selectionEmail, ReadActions.markAsRead);
+        _submitMarkAsReadMultiple(selectionEmail, ReadActions.markAsRead);
         break;
       case EmailActionType.markAsUnread:
         cancelSelectEmail();
-        markAsReadSelectedMultipleEmail(selectionEmail, ReadActions.markAsUnread);
+        _submitMarkAsReadMultiple(selectionEmail, ReadActions.markAsUnread);
         break;
       case EmailActionType.markAsStarred:
         cancelSelectEmail();
@@ -1351,10 +1411,10 @@ class ThreadController extends BaseController with EmailActionController {
         selectEmail(selectedEmail);
         break;
       case EmailActionType.markAsRead:
-        markAsEmailRead(selectedEmail, ReadActions.markAsRead, MarkReadAction.tap);
+        _submitMarkAsRead(selectedEmail, ReadActions.markAsRead, MarkReadAction.tap);
         break;
       case EmailActionType.markAsUnread:
-        markAsEmailRead(selectedEmail, ReadActions.markAsUnread, MarkReadAction.tap);
+        _submitMarkAsRead(selectedEmail, ReadActions.markAsUnread, MarkReadAction.tap);
         break;
       case EmailActionType.markAsStarred:
         markAsStarEmail(selectedEmail, MarkStarAction.markStar);
@@ -1547,7 +1607,7 @@ class ThreadController extends BaseController with EmailActionController {
   ) async {
     if (direction == DismissDirection.startToEnd) {
       ReadActions readActions = !email.hasRead ? ReadActions.markAsRead : ReadActions.markAsUnread;
-      markAsEmailRead(email, readActions, MarkReadAction.swipeOnThread);
+      _submitMarkAsRead(email, readActions, MarkReadAction.swipeOnThread);
     } else if (direction == DismissDirection.endToStart) {
       archiveMessage(email);
     }
@@ -1622,5 +1682,39 @@ class ThreadController extends BaseController with EmailActionController {
     } else  {
       _loadMoreEmails();
     }
+  }
+
+  void _submitMarkAsRead(
+    PresentationEmail email,
+    ReadActions readActions,
+    MarkReadAction markReadAction,
+  ) {
+    if (email.id == null) return;
+    _actionQueue.submit(
+      MarkAsReadEmailAction(
+        email.id!, readActions, markReadAction,
+        email.mailboxContain?.mailboxId,
+        Get.find<MarkAsEmailReadInteractor>(),
+      ),
+      token: _cancelToken,
+    );
+  }
+
+  void _submitMarkAsReadMultiple(
+    List<PresentationEmail> emails,
+    ReadActions readActions,
+  ) {
+    final needMark = emails
+        .where((e) => readActions == ReadActions.markAsUnread ? e.hasRead : !e.hasRead)
+        .toList();
+    if (needMark.isEmpty) return;
+    _actionQueue.submit(
+      MarkAsReadMultipleEmailAction(
+        needMark.listEmailIds, readActions,
+        needMark.emailIdsByMailboxId,
+        Get.find<MarkAsMultipleEmailReadInteractor>(),
+      ),
+      token: _cancelToken,
+    );
   }
 }

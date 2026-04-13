@@ -2,6 +2,7 @@
 import 'package:model/email/email_action_type.dart';
 import 'package:model/email/presentation_email.dart';
 import 'package:model/email/read_actions.dart';
+import 'package:tmail_ui_user/features/email/domain/model/mark_read_action.dart';
 import 'package:tmail_ui_user/features/email/presentation/model/composer_arguments.dart';
 import 'package:tmail_ui_user/features/mailbox_dashboard/presentation/extensions/open_and_close_composer_extension.dart';
 import 'package:tmail_ui_user/features/thread_detail/presentation/thread_detail_controller.dart';
@@ -24,14 +25,8 @@ extension ThreadDetailOnEmailActionClick on ThreadDetailController {
   }
 
   void _markRead(PresentationEmail presentationEmail) {
-    if (session == null || accountId == null || presentationEmail.hasRead) return;
-
-    consumeState(emailActionReactor.markAsEmailRead(
-      session!,
-      accountId!,
-      presentationEmail,
-      readAction: ReadActions.markAsRead,
-    ));
+    if (presentationEmail.hasRead) return;
+    markAsEmailRead(presentationEmail, ReadActions.markAsRead, MarkReadAction.tap);
   }
 
   void _replyEmail(PresentationEmail presentationEmail) {

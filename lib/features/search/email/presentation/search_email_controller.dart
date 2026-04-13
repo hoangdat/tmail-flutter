@@ -86,6 +86,12 @@ import 'package:tmail_ui_user/main/routes/app_routes.dart';
 import 'package:tmail_ui_user/main/routes/dialog_router.dart';
 import 'package:tmail_ui_user/main/routes/navigation_router.dart';
 import 'package:tmail_ui_user/main/routes/route_navigation.dart';
+import 'package:tmail_ui_user/features/email/presentation/action/cancellation_token.dart';
+import 'package:tmail_ui_user/features/email/presentation/action/email_action_queue.dart';
+import 'package:tmail_ui_user/features/email/presentation/action/mark_as_read_email_action.dart';
+import 'package:tmail_ui_user/features/email/presentation/action/mark_as_read_multiple_email_action.dart';
+import 'package:tmail_ui_user/features/email/domain/usecases/mark_as_email_read_interactor.dart';
+import 'package:tmail_ui_user/features/thread/domain/usecases/mark_as_multiple_email_read_interactor.dart';
 import 'package:tmail_ui_user/main/routes/route_utils.dart';
 
 class SearchEmailController extends BaseController
@@ -96,6 +102,9 @@ class SearchEmailController extends BaseController
         EmailMoreActionContextMenu {
 
   final networkConnectionController = Get.find<NetworkConnectionController>();
+
+  late final EmailActionQueue _actionQueue;
+  final _cancelToken = CancellationToken();
 
   final QuickSearchEmailInteractor _quickSearchEmailInteractor;
   final SaveRecentSearchInteractor _saveRecentSearchInteractor;
@@ -171,6 +180,7 @@ class SearchEmailController extends BaseController
   @override
   void onInit() {
     super.onInit();
+    _actionQueue = Get.find<EmailActionQueue>();
     _initializeDebounceTimeTextSearchChange();
     _initializeTextInputFocus();
     _initWorkerListener();
@@ -937,10 +947,10 @@ class SearchEmailController extends BaseController
         selectEmail(selectedEmail);
         break;
       case EmailActionType.markAsRead:
-        markAsEmailRead(selectedEmail, ReadActions.markAsRead, MarkReadAction.tap);
+        _submitMarkAsRead(selectedEmail, ReadActions.markAsRead, MarkReadAction.tap);
         break;
       case EmailActionType.markAsUnread:
-        markAsEmailRead(selectedEmail, ReadActions.markAsUnread, MarkReadAction.tap);
+        _submitMarkAsRead(selectedEmail, ReadActions.markAsUnread, MarkReadAction.tap);
         break;
       case EmailActionType.markAsStarred:
         markAsStarEmail(selectedEmail, MarkStarAction.markStar);
@@ -1017,11 +1027,11 @@ class SearchEmailController extends BaseController
     switch(actionType) {
       case EmailActionType.markAsRead:
         cancelSelectionMode();
-        markAsReadSelectedMultipleEmail(listEmails, ReadActions.markAsRead);
+        _submitMarkAsReadMultiple(listEmails, ReadActions.markAsRead);
         break;
       case EmailActionType.markAsUnread:
         cancelSelectionMode();
-        markAsReadSelectedMultipleEmail(listEmails, ReadActions.markAsUnread);
+        _submitMarkAsReadMultiple(listEmails, ReadActions.markAsUnread);
         break;
       case EmailActionType.markAsStarred:
         cancelSelectionMode();
@@ -1184,6 +1194,7 @@ class SearchEmailController extends BaseController
 
   @override
   void onClose() {
+    _cancelToken.cancel();
     textInputSearchFocus.removeListener(_onSearchTextInputListener);
     textInputSearchController.dispose();
     textInputSearchFocus.dispose();
@@ -1195,5 +1206,39 @@ class SearchEmailController extends BaseController
     _webSocketQueueHandler?.dispose();
     onKeyboardShortcutDispose();
     super.onClose();
+  }
+
+  void _submitMarkAsRead(
+    PresentationEmail email,
+    ReadActions readActions,
+    MarkReadAction markReadAction,
+  ) {
+    if (email.id == null) return;
+    _actionQueue.submit(
+      MarkAsReadEmailAction(
+        email.id!, readActions, markReadAction,
+        email.mailboxContain?.mailboxId,
+        Get.find<MarkAsEmailReadInteractor>(),
+      ),
+      token: _cancelToken,
+    );
+  }
+
+  void _submitMarkAsReadMultiple(
+    List<PresentationEmail> emails,
+    ReadActions readActions,
+  ) {
+    final needMark = emails
+        .where((e) => readActions == ReadActions.markAsUnread ? e.hasRead : !e.hasRead)
+        .toList();
+    if (needMark.isEmpty) return;
+    _actionQueue.submit(
+      MarkAsReadMultipleEmailAction(
+        needMark.listEmailIds, readActions,
+        needMark.emailIdsByMailboxId,
+        Get.find<MarkAsMultipleEmailReadInteractor>(),
+      ),
+      token: _cancelToken,
+    );
   }
 }

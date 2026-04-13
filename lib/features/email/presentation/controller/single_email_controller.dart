@@ -4,6 +4,9 @@ import 'package:core/core.dart';
 import 'package:core/presentation/utils/html_transformer/text/new_line_transformer.dart';
 import 'package:core/presentation/utils/html_transformer/text/sanitize_autolink_unescape_html_transformer.dart';
 import 'package:dartz/dartz.dart';
+import 'package:tmail_ui_user/features/email/presentation/action/cancellation_token.dart';
+import 'package:tmail_ui_user/features/email/presentation/action/email_action_queue.dart';
+import 'package:tmail_ui_user/features/email/presentation/action/mark_as_read_email_action.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
@@ -114,6 +117,8 @@ import 'package:tmail_ui_user/main/utils/app_utils.dart';
 class SingleEmailController extends BaseController with AppLoaderMixin {
 
   final mailboxDashBoardController = Get.find<MailboxDashBoardController>();
+  late final EmailActionQueue _actionQueue;
+  final _cancelToken = CancellationToken();
 
   final GetEmailContentInteractor _getEmailContentInteractor;
   final MarkAsEmailReadInteractor _markAsEmailReadInteractor;
@@ -200,6 +205,7 @@ class SingleEmailController extends BaseController with AppLoaderMixin {
       attachmentListKey = GlobalKey();
     }
     _threadDetailController = getBinding<ThreadDetailController>();
+    _actionQueue = Get.find<EmailActionQueue>();
     _injectCalendarEventBindings(session, accountId);
     _registerObxStreamListener();
     emailActionReactor = EmailActionReactor(
@@ -214,6 +220,7 @@ class SingleEmailController extends BaseController with AppLoaderMixin {
 
   @override
   void onClose() {
+    _cancelToken.cancel();
     _threadDetailController = null;
     CalendarEventInteractorBindings().dispose();
     MdnInteractorBindings().dispose();
@@ -226,8 +233,6 @@ class SingleEmailController extends BaseController with AppLoaderMixin {
       _getEmailContentSuccess(success);
     } else if (success is GetEmailContentFromCacheSuccess) {
       _getEmailContentOfflineSuccess(success);
-    } else if (success is MarkAsEmailReadSuccess) {
-      _handleMarkAsEmailReadCompleted(success);
     } else if (success is MarkAsStarEmailSuccess) {
       _markAsEmailStarSuccess(success);
     } else if (success is GetAllIdentitiesSuccess) {
@@ -683,25 +688,26 @@ class SingleEmailController extends BaseController with AppLoaderMixin {
     return email.findMailboxContain(mailboxDashBoardController.mapMailboxById);
   }
 
-  void markAsEmailRead(
+  void markAsEmailRead( // separate to a manager class to submit action to queue 
     PresentationEmail presentationEmail,
     ReadActions readActions,
     MarkReadAction markReadAction,
   ) {
-    if (accountId != null && session != null && presentationEmail.id != null) {
-      consumeState(_markAsEmailReadInteractor.execute(
-        session!,
-        accountId!,
-        presentationEmail.id!,
-        readActions,
-        markReadAction,
+    if (presentationEmail.id == null) return;
+    log('SingleEmailController::markAsEmailRead emailId: ${presentationEmail.id}');
+    _actionQueue.submit(
+      MarkAsReadEmailAction(
+        presentationEmail.id!, readActions, markReadAction,
         presentationEmail.mailboxContain?.mailboxId,
-      ));
-    }
-  }
-
-  void _handleMarkAsEmailReadCompleted(MarkAsEmailReadSuccess success) {
-    _threadDetailController?.markCollapsedEmailReadSuccess(success);
+        Get.find<MarkAsEmailReadInteractor>(),
+      ),
+      token: _cancelToken,
+      onSuccess: (success) {
+        if (success is MarkAsEmailReadSuccess) {
+          _threadDetailController?.markCollapsedEmailReadSuccess(success);
+        }
+      },
+    );
   }
 
   bool isDownloadAllSupported() {
@@ -877,14 +883,7 @@ class SingleEmailController extends BaseController with AppLoaderMixin {
   ) {
     switch(actionType) {
       case EmailActionType.markAsUnread:
-        if (session != null && accountId != null) {
-          consumeState(emailActionReactor.markAsEmailRead(
-            session!,
-            accountId!,
-            presentationEmail,
-            readAction: ReadActions.markAsUnread,
-          ));
-        }
+        markAsEmailRead(presentationEmail, ReadActions.markAsUnread, MarkReadAction.tap);
         break;
       case EmailActionType.markAsStarred:
         if (session != null && accountId != null) {

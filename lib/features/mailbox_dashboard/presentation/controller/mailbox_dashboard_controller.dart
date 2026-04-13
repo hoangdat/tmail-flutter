@@ -33,6 +33,9 @@ import 'package:rxdart/transformers.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:server_settings/server_settings/tmail_server_settings_extension.dart';
 import 'package:tmail_ui_user/features/base/action/ui_action.dart';
+import 'package:tmail_ui_user/features/base/state/email_list_state_provider.dart';
+import 'package:tmail_ui_user/features/base/state/mailbox_state_provider.dart';
+import 'package:tmail_ui_user/features/base/state/session_state_provider.dart';
 import 'package:tmail_ui_user/features/base/base_controller.dart';
 import 'package:tmail_ui_user/features/base/mixin/ai_scribe_mixin.dart';
 import 'package:tmail_ui_user/features/base/mixin/contact_support_mixin.dart';
@@ -55,7 +58,6 @@ import 'package:tmail_ui_user/features/composer/presentation/model/compose_actio
 import 'package:tmail_ui_user/features/contact/presentation/model/contact_arguments.dart';
 import 'package:tmail_ui_user/features/destination_picker/presentation/model/destination_picker_arguments.dart';
 import 'package:tmail_ui_user/features/download/presentation/controllers/download_controller.dart';
-import 'package:tmail_ui_user/features/email/domain/model/mark_read_action.dart';
 import 'package:tmail_ui_user/features/email/domain/model/move_action.dart';
 import 'package:tmail_ui_user/features/email/domain/model/move_to_mailbox_request.dart';
 import 'package:tmail_ui_user/features/email/domain/model/restore_deleted_message_request.dart';
@@ -63,8 +65,10 @@ import 'package:tmail_ui_user/features/email/domain/state/delete_email_permanent
 import 'package:tmail_ui_user/features/email/domain/state/delete_multiple_emails_permanently_state.dart';
 import 'package:tmail_ui_user/features/email/domain/state/delete_sending_email_state.dart';
 import 'package:tmail_ui_user/features/email/domain/state/get_restored_deleted_message_state.dart';
+import 'package:tmail_ui_user/features/email/domain/model/mark_read_action.dart';
 import 'package:tmail_ui_user/features/email/domain/state/mark_as_email_read_state.dart';
 import 'package:tmail_ui_user/features/email/domain/state/mark_as_email_star_state.dart';
+import 'package:tmail_ui_user/features/thread/domain/state/mark_as_multiple_email_read_state.dart';
 import 'package:tmail_ui_user/features/email/domain/state/move_to_mailbox_state.dart';
 import 'package:tmail_ui_user/features/email/domain/state/restore_deleted_message_state.dart';
 import 'package:tmail_ui_user/features/email/domain/state/store_sending_email_state.dart';
@@ -80,6 +84,7 @@ import 'package:tmail_ui_user/features/email/domain/usecases/remove_a_label_from
 import 'package:tmail_ui_user/features/email/domain/usecases/restore_deleted_message_interactor.dart';
 import 'package:tmail_ui_user/features/email/domain/usecases/unsubscribe_email_interactor.dart';
 import 'package:tmail_ui_user/features/email/presentation/action/email_ui_action.dart';
+import 'package:tmail_ui_user/features/email/presentation/service/email_service_registry.dart';
 import 'package:tmail_ui_user/features/email/presentation/model/composer_arguments.dart';
 import 'package:tmail_ui_user/features/email/presentation/utils/email_utils.dart';
 import 'package:tmail_ui_user/features/email_recovery/presentation/model/email_recovery_arguments.dart';
@@ -203,7 +208,6 @@ import 'package:tmail_ui_user/features/thread/domain/model/search_query.dart';
 import 'package:tmail_ui_user/features/thread/domain/state/empty_spam_folder_state.dart';
 import 'package:tmail_ui_user/features/thread/domain/state/empty_trash_folder_state.dart';
 import 'package:tmail_ui_user/features/thread/domain/state/get_email_by_id_state.dart';
-import 'package:tmail_ui_user/features/thread/domain/state/mark_as_multiple_email_read_state.dart';
 import 'package:tmail_ui_user/features/thread/domain/state/mark_as_star_multiple_email_state.dart';
 import 'package:tmail_ui_user/features/thread/domain/state/move_multiple_email_to_mailbox_state.dart';
 import 'package:tmail_ui_user/features/thread/domain/state/refresh_all_email_state.dart';
@@ -242,6 +246,9 @@ class MailboxDashBoardController extends ReloadableController
         SearchLabelFilterModalMixin,
         AddLabelToEmailMixin,
         HandleTeamMailboxMixin {
+
+  final SessionStateProvider sessionStateProvider = Get.find<SessionStateProvider>();
+  final EmailListStateProvider emailListStateProvider = Get.find<EmailListStateProvider>();
 
   final RemoveEmailDraftsInteractor _removeEmailDraftsInteractor = Get.find<RemoveEmailDraftsInteractor>();
   final EmailReceiveManager _emailReceiveManager = Get.find<EmailReceiveManager>();
@@ -334,8 +341,8 @@ class MailboxDashBoardController extends ReloadableController
 
   Map<Role, MailboxId> mapDefaultMailboxIdByRole = {};
   Map<MailboxId, PresentationMailbox> mapMailboxById = {};
-  final emailsInCurrentMailbox = <PresentationEmail>[].obs;
-  final listResultSearch = RxList<PresentationEmail>();
+  RxList<PresentationEmail> get emailsInCurrentMailbox => emailListStateProvider.emailsInCurrentMailbox;
+  RxList<PresentationEmail> get listResultSearch => emailListStateProvider.listResultSearch;
   PresentationMailbox? outboxMailbox;
   List<Identity>? _identities;
   jmap.State? _currentEmailState;
@@ -476,10 +483,6 @@ class MailboxDashBoardController extends ReloadableController
       }
     } else if (success is UpdateVacationSuccess) {
       _handleUpdateVacationSuccess(success);
-    } else if (success is MarkAsMultipleEmailReadAllSuccess) {
-      _markAsReadSelectedMultipleEmailSuccess(success.readActions, success.emailIds);
-    } else if (success is MarkAsMultipleEmailReadHasSomeEmailFailure) {
-      _markAsReadSelectedMultipleEmailSuccess(success.readActions, success.successEmailIds);
     } else if (success is MarkAsStarMultipleEmailAllSuccess) {
       _markAsStarMultipleEmailSuccess(
         success.markStarAction,
@@ -510,8 +513,6 @@ class MailboxDashBoardController extends ReloadableController
       _handleUpdateSendingEmailSuccess(success);
     } else if (success is EmptySpamFolderSuccess) {
       _emptySpamFolderSuccess(success);
-    } else if (success is MarkAsEmailReadSuccess) {
-      _markAsReadEmailSuccess(success);
     } else if (success is DeleteSendingEmailSuccess) {
       getAllSendingEmails();
     } else if (success is UnsubscribeEmailSuccess) {
@@ -898,6 +899,7 @@ class MailboxDashBoardController extends ReloadableController
     _isFirstSessionLoad = true;
     sessionCurrent = session;
     accountId.value = currentAccountId;
+    sessionStateProvider.setSession(session, currentAccountId);
     synchronizeOwnEmailAddress(session.getOwnEmailAddressOrEmpty());
 
     SentryManager.instance.setUser(
@@ -972,6 +974,7 @@ class MailboxDashBoardController extends ReloadableController
 
   void setMapMailboxById(Map<MailboxId, PresentationMailbox> newMapMailboxById) {
     mapMailboxById = newMapMailboxById;
+    Get.find<MailboxStateProvider>().updateMapMailboxById(newMapMailboxById);
   }
 
   void setOutboxMailbox(PresentationMailbox? newOutbox) {
@@ -982,6 +985,7 @@ class MailboxDashBoardController extends ReloadableController
   void setSelectedMailbox(PresentationMailbox? newPresentationMailbox) {
     log('MailboxDashBoardController::setSelectedMailbox: SELECTED_MAILBOX_ID = ${newPresentationMailbox?.id.asString} |  SELECTED_MAILBOX_NAME = ${newPresentationMailbox?.name?.name} | ');
     selectedMailbox.value = newPresentationMailbox;
+    Get.find<MailboxStateProvider>().setSelectedMailbox(newPresentationMailbox);
   }
 
   void setSelectedEmail(PresentationEmail? newPresentationEmail) {
@@ -1219,35 +1223,36 @@ class MailboxDashBoardController extends ReloadableController
     }
   }
 
+  /// Used only for undo after swipe-to-mark-read toast.
   void markAsEmailRead(
     EmailId emailId,
     ReadActions readActions,
     MarkReadAction markReadAction,
     MailboxId? mailboxId,
   ) {
+    final emailRegistry = Get.find<EmailServiceRegistry>();
     if (accountId.value != null && sessionCurrent != null) {
-      consumeState(_markAsEmailReadInteractor.execute(
-        sessionCurrent!,
-        accountId.value!,
-        emailId,
-        readActions,
-        markReadAction,
-        mailboxId,
-      ));
-    }
-  }
-
-  void markAsStarEmail(PresentationEmail presentationEmail, MarkStarAction action) {
-    if (accountId.value != null && sessionCurrent != null) {
-      consumeState(_markAsStarEmailInteractor.execute(
-        sessionCurrent!,
-        accountId.value!,
-        presentationEmail.id!,
-        action));
+      log('MailboxDashBoardController::markAsEmailRead [NEW PATH - undo] emailId: $emailId');
+      consumeState(
+        emailRegistry.flag.markAsRead(
+          sessionCurrent!,
+          accountId.value!,
+          emailId,
+          readActions,
+          markReadAction,
+          mailboxId,
+        ),
+        onSuccess: (success) {
+          if (success is MarkAsEmailReadSuccess) {
+            _markAsReadEmailSuccess(success);
+          }
+        },
+      );
     }
   }
 
   void markAsReadSelectedMultipleEmail(List<PresentationEmail> listPresentationEmail, ReadActions readActions) {
+    final emailRegistry = Get.find<EmailServiceRegistry>();
     final listEmailNeedMarkAsRead = listPresentationEmail
       .where((email) {
         if (readActions == ReadActions.markAsUnread) {
@@ -1259,13 +1264,23 @@ class MailboxDashBoardController extends ReloadableController
       .toList();
 
     if (accountId.value != null && sessionCurrent != null) {
-      consumeState(_markAsMultipleEmailReadInteractor.execute(
-        sessionCurrent!,
-        accountId.value!,
-        listEmailNeedMarkAsRead.listEmailIds,
-        readActions,
-        listEmailNeedMarkAsRead.emailIdsByMailboxId,
-      ));
+      log('MailboxDashBoardController::markAsReadSelectedMultipleEmail [NEW PATH] count: ${listEmailNeedMarkAsRead.length}');
+      consumeState(
+        emailRegistry.flag.markAsReadMultiple(
+          sessionCurrent!,
+          accountId.value!,
+          listEmailNeedMarkAsRead.listEmailIds,
+          readActions,
+          listEmailNeedMarkAsRead.emailIdsByMailboxId,
+        ),
+        onSuccess: (success) {
+          if (success is MarkAsMultipleEmailReadAllSuccess) {
+            _markAsReadSelectedMultipleEmailSuccess(success.readActions, success.emailIds);
+          } else if (success is MarkAsMultipleEmailReadHasSomeEmailFailure) {
+            _markAsReadSelectedMultipleEmailSuccess(success.readActions, success.successEmailIds);
+          }
+        },
+      );
     }
   }
 
@@ -1314,6 +1329,16 @@ class MailboxDashBoardController extends ReloadableController
         textColor: Colors.white,
         actionIcon: SvgPicture.asset(imagePaths.icUndo),
       );
+    }
+  }
+
+  void markAsStarEmail(PresentationEmail presentationEmail, MarkStarAction action) {
+    if (accountId.value != null && sessionCurrent != null) {
+      consumeState(_markAsStarEmailInteractor.execute(
+        sessionCurrent!,
+        accountId.value!,
+        presentationEmail.id!,
+        action));
     }
   }
 
@@ -3404,6 +3429,7 @@ class MailboxDashBoardController extends ReloadableController
 
   void setCurrentEmailState(jmap.State? newState) {
     _currentEmailState = newState;
+    emailListStateProvider.setCurrentEmailState(newState);
   }
 
   jmap.State? get currentEmailState => _currentEmailState;
@@ -3455,6 +3481,9 @@ class MailboxDashBoardController extends ReloadableController
     _identities = null;
     outboxMailbox = null;
     sessionCurrent = null;
+    sessionStateProvider.clear();
+    emailListStateProvider.clear();
+    Get.find<MailboxStateProvider>().clear();
     mapMailboxById = {};
     mapDefaultMailboxIdByRole = {};
     WebSocketController.instance.onClose();

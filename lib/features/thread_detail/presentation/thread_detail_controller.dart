@@ -27,9 +27,9 @@ import 'package:tmail_ui_user/features/email/domain/usecases/mark_as_email_read_
 import 'package:tmail_ui_user/features/email/domain/usecases/mark_as_star_email_interactor.dart';
 import 'package:tmail_ui_user/features/email/domain/usecases/print_email_interactor.dart';
 import 'package:tmail_ui_user/features/email/presentation/action/email_ui_action.dart';
+import 'package:tmail_ui_user/features/thread/presentation/mixin/email_action_controller.dart';
 import 'package:tmail_ui_user/features/email/presentation/model/email_loaded.dart';
 import 'package:tmail_ui_user/features/email/presentation/utils/email_action_reactor/email_action_reactor.dart';
-import 'package:tmail_ui_user/features/mailbox_dashboard/presentation/controller/mailbox_dashboard_controller.dart';
 import 'package:tmail_ui_user/features/manage_account/domain/state/create_new_rule_filter_state.dart';
 import 'package:tmail_ui_user/features/manage_account/domain/usecases/create_new_email_rule_filter_interactor.dart';
 import 'package:tmail_ui_user/features/network_connection/presentation/network_connection_controller.dart'
@@ -63,7 +63,7 @@ import 'package:tmail_ui_user/features/thread_detail/presentation/thread_detail_
 import 'package:tmail_ui_user/main/localizations/app_localizations.dart';
 import 'package:tmail_ui_user/main/routes/route_navigation.dart';
 
-class ThreadDetailController extends BaseController {
+class ThreadDetailController extends BaseController with EmailActionController {
   final GetThreadByIdInteractor _getEmailIdsByThreadIdInteractor;
   final GetEmailsByIdsInteractor getEmailsByIdsInteractor;
   final MarkAsEmailReadInteractor _markAsEmailReadInteractor;
@@ -118,7 +118,6 @@ class ThreadDetailController extends BaseController {
     },
   );
 
-  final mailboxDashBoardController = Get.find<MailboxDashBoardController>();
   final searchEmailController = Get.find<SearchEmailController>();
   final networkConnectionController = Get.find<NetworkConnectionController>();
   final threadDetailManager = Get.find<ThreadDetailManager>();

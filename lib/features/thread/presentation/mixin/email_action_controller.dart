@@ -1,6 +1,11 @@
 
-import 'package:core/presentation/resources/image_paths.dart';
-import 'package:core/presentation/utils/responsive_utils.dart';
+import 'package:model/extensions/list_presentation_email_extension.dart';
+import 'package:tmail_ui_user/features/base/base_controller.dart';
+import 'package:tmail_ui_user/features/base/state/email_list_state_provider.dart';
+import 'package:tmail_ui_user/features/base/state/session_state_provider.dart';
+import 'package:tmail_ui_user/features/email/domain/state/mark_as_email_read_state.dart';
+import 'package:tmail_ui_user/features/email/presentation/service/email_service_registry.dart';
+import 'package:tmail_ui_user/features/thread/domain/state/mark_as_multiple_email_read_state.dart';
 import 'package:core/presentation/views/bottom_popup/confirmation_dialog_action_sheet_builder.dart';
 import 'package:core/utils/app_logger.dart';
 import 'package:core/utils/platform_info.dart';
@@ -36,11 +41,12 @@ import 'package:tmail_ui_user/main/routes/dialog_router.dart';
 import 'package:tmail_ui_user/main/routes/route_navigation.dart';
 import 'package:tmail_ui_user/main/utils/app_utils.dart';
 
-mixin EmailActionController {
+mixin EmailActionController on BaseController {
 
   final mailboxDashBoardController = Get.find<MailboxDashBoardController>();
-  final responsiveUtils = Get.find<ResponsiveUtils>();
-  final imagePaths = Get.find<ImagePaths>();
+  final _sessionProvider = Get.find<SessionStateProvider>();
+  final _emailListProvider = Get.find<EmailListStateProvider>();
+  final _emailRegistry = Get.find<EmailServiceRegistry>();
 
   void editDraftEmail({
     required PresentationEmail presentationEmail,
@@ -316,20 +322,64 @@ mixin EmailActionController {
     ReadActions readActions,
     MarkReadAction markReadAction,
   ) {
-    mailboxDashBoardController.markAsEmailRead(
-      presentationEmail.id!,
-      readActions,
-      markReadAction,
-      presentationEmail.mailboxContain?.mailboxId,
+    log('EmailActionController::markAsEmailRead [NEW PATH] emailId: ${presentationEmail.id}');
+    final session = _sessionProvider.session.value;
+    final accountId = _sessionProvider.accountId.value;
+    if (session == null || accountId == null || presentationEmail.id == null) return;
+    consumeState(
+      _emailRegistry.flag.markAsRead(
+        session, accountId, presentationEmail.id!,
+        readActions, markReadAction,
+        presentationEmail.mailboxContain?.mailboxId,
+      ),
+      onSuccess: (success) {
+        if (success is MarkAsEmailReadSuccess) {
+          _emailListProvider.updateEmailFlagByEmailIds(
+            [success.emailId], readAction: success.readActions,
+          );
+          onMarkAsEmailReadSuccess(success);
+        }
+      },
     );
   }
+
+  /// Override in controllers that need extra handling on mark-read success.
+  void onMarkAsEmailReadSuccess(MarkAsEmailReadSuccess success) {}
 
   void markAsStarEmail(PresentationEmail presentationEmail, MarkStarAction action) {
     mailboxDashBoardController.markAsStarEmail(presentationEmail, action);
   }
 
   void markAsReadSelectedMultipleEmail(List<PresentationEmail> listEmails, ReadActions readActions) {
-    mailboxDashBoardController.markAsReadSelectedMultipleEmail(listEmails, readActions);
+    log('EmailActionController::markAsReadSelectedMultipleEmail [NEW PATH] count: ${listEmails.length}');
+    final session = _sessionProvider.session.value;
+    final accountId = _sessionProvider.accountId.value;
+    if (session == null || accountId == null) return;
+
+    final listEmailNeedMark = listEmails
+        .where((email) => readActions == ReadActions.markAsUnread
+            ? email.hasRead
+            : !email.hasRead)
+        .toList();
+
+    consumeState(
+      _emailRegistry.flag.markAsReadMultiple(
+        session, accountId,
+        listEmailNeedMark.listEmailIds, readActions,
+        listEmailNeedMark.emailIdsByMailboxId,
+      ),
+      onSuccess: (success) {
+        if (success is MarkAsMultipleEmailReadAllSuccess) {
+          _emailListProvider.updateEmailFlagByEmailIds(
+            success.emailIds, readAction: success.readActions,
+          );
+        } else if (success is MarkAsMultipleEmailReadHasSomeEmailFailure) {
+          _emailListProvider.updateEmailFlagByEmailIds(
+            success.successEmailIds, readAction: success.readActions,
+          );
+        }
+      },
+    );
   }
 
   void markAsStarSelectedMultipleEmail(List<PresentationEmail> listEmails, MarkStarAction markStarAction) {
