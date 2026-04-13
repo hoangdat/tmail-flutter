@@ -267,6 +267,7 @@ class ThreadController extends BaseController with EmailActionController {
   }
 
   void _registerBusListeners() {
+    logDebug('ThreadController::_registerBusListeners: registering bus subscriptions', webConsoleEnabled: true);
     final eventBus = Get.find<AppEventBus>();
     _getAllEmailSuccessBusSub = eventBus.on<GetAllEmailSuccess>().listen(
       _onGetAllEmailSuccess,
@@ -277,20 +278,23 @@ class ThreadController extends BaseController with EmailActionController {
   }
 
   void _onGetAllEmailSuccess(GetAllEmailSuccess success) {
+    logDebug('ThreadController::_onGetAllEmailSuccess: [BUS] UI reactions for mailboxId=${success.currentMailboxId}', webConsoleEnabled: true);
     final currentMailboxId = success.currentMailboxId;
     final isVirtualFolder = selectedMailbox?.isVirtualFolder == true;
 
+    // Same guard as EmailListStateProvider — skip UI reactions for mismatched mailbox.
     if (currentMailboxId != null &&
         (isVirtualFolder || currentMailboxId != selectedMailboxId)) {
+      logDebug('ThreadController::_onGetAllEmailSuccess: [BUS] skipped — mailbox mismatch (current=$selectedMailboxId, got=$currentMailboxId)', webConsoleEnabled: true);
       return;
     }
 
+    // Signal pull-to-refresh completion.
     mailboxDashBoardController.updateRefreshAllEmailState(
       Right(RefreshAllEmailSuccess()),
     );
-    mailboxDashBoardController.setCurrentEmailState(success.currentEmailState);
-    mailboxDashBoardController.updateEmailList(success.emailList);
 
+    // Sync selection state if multi-select is active.
     if (mailboxDashBoardController.isSelectionEnabled()) {
       mailboxDashBoardController.listEmailSelected.value = listEmailSelected;
     }
@@ -299,7 +303,6 @@ class ThreadController extends BaseController with EmailActionController {
       listEmailController.jumpTo(0);
     }
 
-    // onDone logic
     if (PlatformInfo.isWeb && mailboxDashBoardController.isEmailListDisplayed) {
       refocusMailShortcutFocus();
     }
@@ -311,6 +314,7 @@ class ThreadController extends BaseController with EmailActionController {
   }
 
   void _onGetAllEmailFailure(GetAllEmailFailure failure) {
+    logDebug('ThreadController::_onGetAllEmailFailure: [BUS] received failure=${failure.exception}');
     dispatchState(Left(failure));
     mailboxDashBoardController.updateRefreshAllEmailState(
       Left(RefreshAllEmailFailure()),

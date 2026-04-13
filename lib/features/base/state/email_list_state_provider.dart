@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:get/get.dart';
 import 'package:jmap_dart_client/jmap/core/state.dart' as jmap;
 import 'package:jmap_dart_client/jmap/mail/email/email.dart';
@@ -7,37 +5,13 @@ import 'package:jmap_dart_client/jmap/mail/email/keyword_identifier.dart';
 import 'package:model/email/mark_star_action.dart';
 import 'package:model/email/presentation_email.dart';
 import 'package:model/email/read_actions.dart';
-import 'package:tmail_ui_user/features/base/event_bus/app_event_bus.dart';
-import 'package:tmail_ui_user/features/email/domain/state/mark_as_email_read_state.dart';
-import 'package:tmail_ui_user/features/thread/domain/state/mark_as_multiple_email_read_state.dart';
 
+/// Pure state store for the email list. No bus subscriptions — handlers write here.
 class EmailListStateProvider extends GetxService {
   final emailsInCurrentMailbox = <PresentationEmail>[].obs;
   final listResultSearch = <PresentationEmail>[].obs;
   final isInSearchMode = false.obs;
   jmap.State? currentEmailState;
-
-  StreamSubscription? _readSuccessSub;
-  StreamSubscription? _readMultipleSuccessSub;
-
-  @override
-  void onInit() {
-    super.onInit();
-    final eventBus = Get.find<AppEventBus>();
-    _readSuccessSub = eventBus.on<MarkAsEmailReadSuccess>().listen((s) { // van bi phinh khi co nhieu feature
-      updateEmailFlagByEmailIds([s.emailId], readAction: s.readActions);
-    });
-    _readMultipleSuccessSub = eventBus.on<MarkAsMultipleEmailReadAllSuccess>().listen((s) {
-      updateEmailFlagByEmailIds(s.emailIds, readAction: s.readActions);
-    });
-  }
-
-  @override
-  void onClose() {
-    _readSuccessSub?.cancel();
-    _readMultipleSuccessSub?.cancel();
-    super.onClose();
-  }
 
   void updateEmailFlagByEmailIds(
     List<EmailId> emailIds, {

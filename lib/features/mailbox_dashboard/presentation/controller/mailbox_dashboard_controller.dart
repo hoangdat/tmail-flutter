@@ -2532,6 +2532,7 @@ class MailboxDashBoardController extends ReloadableController
   }
 
   void updateEmailList(List<PresentationEmail> newEmailList) {
+    logDebug('SUCKKKK MailboxDashBoardController::updateEmailList: ${newEmailList.length} emails → EmailListStateProvider', webConsoleEnabled: true);
     emailsInCurrentMailbox.value = newEmailList;
   }
 

@@ -59,11 +59,18 @@ _actionQueue.submit(MarkAsReadAction(...),
 | 2 | [EmailAction + EmailActionQueue + CancellationToken](phase-02-email-action-queue.md) | Done |
 | 3 | [Wire EmailListStateProvider to EventBus](phase-03-wire-provider.md) | Done |
 | 4 | [Migrate controllers to use ActionQueue](phase-04-migrate-controllers.md) | Done |
+| 5 | [OCP: Bus Handlers + Pure State Store](../260413-1706-ocp-eventbus-state-propagation/plan.md) | In Progress |
 
 ## Key Constraints
 
-- `EmailActionController` mixin's `markAsEmailRead` → **do not modify**
 - Domain layer (`MarkAsEmailReadInteractor`, `EmailFlagService`) → **do not modify**
-- Old `consumeState` paths in mixin and dashboard → **leave as-is**
 - New path is additive — controllers opt in by using `EmailActionQueue`
-- `EmailFlagActionHandler` → **to be removed** (replaced by queue + token)
+- `EmailFlagActionHandler` → **removed** (replaced by queue + token)
+- `EmailServiceRegistry` → **removed** (interactors used directly via `Get.find`)
+
+## Architecture Evolution (Phase 5)
+
+- `EmailListStateProvider` → pure state store, zero bus knowledge
+- Each event type has its own `BusHandler` (e.g., `MarkAsReadBusHandler`, `GetAllEmailBusHandler`)
+- Controllers subscribe to bus only for UI reactions (scroll, toast, selection sync)
+- See [OCP plan](../260413-1706-ocp-eventbus-state-propagation/plan.md) for details

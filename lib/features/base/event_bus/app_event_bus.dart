@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:core/utils/app_logger.dart';
 import 'package:get/get.dart';
 
 /// A lightweight broadcast event bus registered as a GetxService.
@@ -11,7 +12,10 @@ class AppEventBus extends GetxService {
   Stream<T> on<T>() => _controller.stream.where((e) => e is T).cast<T>();
 
   /// Publishes [event] to all current subscribers.
-  void fire(Object event) => _controller.add(event);
+  void fire(Object event) {
+    logDebug('AppEventBus::fire: ${event.runtimeType}', webConsoleEnabled: true);
+    _controller.add(event);
+  }
 
   @override
   void onClose() {

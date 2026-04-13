@@ -6,6 +6,7 @@ import 'package:jmap_dart_client/jmap/core/properties/properties.dart';
 import 'package:jmap_dart_client/jmap/core/session/session.dart';
 import 'package:jmap_dart_client/jmap/core/sort/comparator.dart';
 import 'package:jmap_dart_client/jmap/core/unsigned_int.dart';
+import 'package:core/utils/app_logger.dart';
 import 'package:tmail_ui_user/features/base/state/mailbox_state_provider.dart';
 import 'package:tmail_ui_user/features/email/presentation/action/email_action.dart';
 import 'package:tmail_ui_user/features/mailbox_dashboard/presentation/controller/search_controller.dart'
@@ -50,6 +51,7 @@ class GetEmailsInMailboxAction extends EmailAction {
     Session session,
     AccountId accountId,
   ) async* {
+    logDebug('GetEmailsInMailboxAction::execute: tag=$tag getLatestChanges=$getLatestChanges useCache=$useCache', webConsoleEnabled: true);
     yield* _interactor
         .execute(
           session,
@@ -66,6 +68,7 @@ class GetEmailsInMailboxAction extends EmailAction {
         .map((result) => result.fold(
               (failure) => Left<Failure, Success>(failure),
               (success) {
+                logDebug('GetEmailsInMailboxAction::execute: success=${success.runtimeType}', webConsoleEnabled: true);
                 if (success is GetAllEmailSuccess) {
                   return Right<Failure, Success>(_syncSuccess(success));
                 }
