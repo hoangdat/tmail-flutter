@@ -82,8 +82,12 @@ import 'package:tmail_ui_user/features/email/domain/usecases/move_to_mailbox_int
 import 'package:tmail_ui_user/features/email/domain/usecases/remove_a_label_from_an_email_interactor.dart';
 import 'package:tmail_ui_user/features/email/domain/usecases/restore_deleted_message_interactor.dart';
 import 'package:tmail_ui_user/features/email/domain/usecases/unsubscribe_email_interactor.dart';
+import 'package:tmail_ui_user/features/email/domain/usecases/mark_as_email_read_interactor.dart';
+import 'package:tmail_ui_user/features/email/presentation/action/email_action_queue.dart';
 import 'package:tmail_ui_user/features/email/presentation/action/email_ui_action.dart';
-import 'package:tmail_ui_user/features/email/presentation/service/email_service_registry.dart';
+import 'package:tmail_ui_user/features/email/presentation/action/mark_as_read_email_action.dart';
+import 'package:tmail_ui_user/features/email/presentation/action/mark_as_read_multiple_email_action.dart';
+import 'package:tmail_ui_user/features/thread/domain/usecases/mark_as_multiple_email_read_interactor.dart';
 import 'package:tmail_ui_user/features/email/presentation/model/composer_arguments.dart';
 import 'package:tmail_ui_user/features/email/presentation/utils/email_utils.dart';
 import 'package:tmail_ui_user/features/email_recovery/presentation/model/email_recovery_arguments.dart';
@@ -1224,58 +1228,40 @@ class MailboxDashBoardController extends ReloadableController
     MarkReadAction markReadAction,
     MailboxId? mailboxId,
   ) {
-    final emailRegistry = Get.find<EmailServiceRegistry>();
-    if (accountId.value != null && sessionCurrent != null) {
-      log('MailboxDashBoardController::markAsEmailRead [NEW PATH - undo] emailId: $emailId');
-      consumeState(
-        emailRegistry.flag.markAsRead(
-          sessionCurrent!,
-          accountId.value!,
-          emailId,
-          readActions,
-          markReadAction,
-          mailboxId,
-        ),
-        onSuccess: (success) {
-          if (success is MarkAsEmailReadSuccess) {
-            _markAsReadEmailSuccess(success);
-          }
-        },
-      );
-    }
+    log('MailboxDashBoardController::markAsEmailRead [undo] emailId: $emailId');
+    Get.find<EmailActionQueue>().submit(
+      MarkAsReadEmailAction(
+        emailId, readActions, markReadAction, mailboxId,
+        Get.find<MarkAsEmailReadInteractor>(),
+      ),
+      onSuccess: (success) {
+        if (success is MarkAsEmailReadSuccess) _markAsReadEmailSuccess(success);
+      },
+    );
   }
 
   void markAsReadSelectedMultipleEmail(List<PresentationEmail> listPresentationEmail, ReadActions readActions) {
-    final emailRegistry = Get.find<EmailServiceRegistry>();
     final listEmailNeedMarkAsRead = listPresentationEmail
-      .where((email) {
-        if (readActions == ReadActions.markAsUnread) {
-          return email.hasRead;
-        } else {
-          return !email.hasRead;
-        }
-      })
+      .where((email) => readActions == ReadActions.markAsUnread ? email.hasRead : !email.hasRead)
       .toList();
+    if (listEmailNeedMarkAsRead.isEmpty) return;
 
-    if (accountId.value != null && sessionCurrent != null) {
-      log('MailboxDashBoardController::markAsReadSelectedMultipleEmail [NEW PATH] count: ${listEmailNeedMarkAsRead.length}');
-      consumeState(
-        emailRegistry.flag.markAsReadMultiple(
-          sessionCurrent!,
-          accountId.value!,
-          listEmailNeedMarkAsRead.listEmailIds,
-          readActions,
-          listEmailNeedMarkAsRead.emailIdsByMailboxId,
-        ),
-        onSuccess: (success) {
-          if (success is MarkAsMultipleEmailReadAllSuccess) {
-            _markAsReadSelectedMultipleEmailSuccess(success.readActions, success.emailIds);
-          } else if (success is MarkAsMultipleEmailReadHasSomeEmailFailure) {
-            _markAsReadSelectedMultipleEmailSuccess(success.readActions, success.successEmailIds);
-          }
-        },
-      );
-    }
+    log('MailboxDashBoardController::markAsReadSelectedMultipleEmail count: ${listEmailNeedMarkAsRead.length}');
+    Get.find<EmailActionQueue>().submit(
+      MarkAsReadMultipleEmailAction(
+        listEmailNeedMarkAsRead.listEmailIds,
+        readActions,
+        listEmailNeedMarkAsRead.emailIdsByMailboxId,
+        Get.find<MarkAsMultipleEmailReadInteractor>(),
+      ),
+      onSuccess: (success) {
+        if (success is MarkAsMultipleEmailReadAllSuccess) {
+          _markAsReadSelectedMultipleEmailSuccess(success.readActions, success.emailIds);
+        } else if (success is MarkAsMultipleEmailReadHasSomeEmailFailure) {
+          _markAsReadSelectedMultipleEmailSuccess(success.readActions, success.successEmailIds);
+        }
+      },
+    );
   }
 
   void _markAsReadSelectedMultipleEmailSuccess(ReadActions readActions, List<EmailId> emailIds) {

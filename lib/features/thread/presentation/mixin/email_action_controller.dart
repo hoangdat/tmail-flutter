@@ -4,7 +4,8 @@ import 'package:tmail_ui_user/features/base/base_controller.dart';
 import 'package:tmail_ui_user/features/base/state/email_list_state_provider.dart';
 import 'package:tmail_ui_user/features/base/state/session_state_provider.dart';
 import 'package:tmail_ui_user/features/email/domain/state/mark_as_email_read_state.dart';
-import 'package:tmail_ui_user/features/email/presentation/service/email_service_registry.dart';
+import 'package:tmail_ui_user/features/email/domain/usecases/mark_as_email_read_interactor.dart';
+import 'package:tmail_ui_user/features/thread/domain/usecases/mark_as_multiple_email_read_interactor.dart';
 import 'package:tmail_ui_user/features/thread/domain/state/mark_as_multiple_email_read_state.dart';
 import 'package:core/presentation/views/bottom_popup/confirmation_dialog_action_sheet_builder.dart';
 import 'package:core/utils/app_logger.dart';
@@ -46,7 +47,6 @@ mixin EmailActionController on BaseController {
   final mailboxDashBoardController = Get.find<MailboxDashBoardController>();
   final _sessionProvider = Get.find<SessionStateProvider>();
   final _emailListProvider = Get.find<EmailListStateProvider>();
-  final _emailRegistry = Get.find<EmailServiceRegistry>();
 
   void editDraftEmail({
     required PresentationEmail presentationEmail,
@@ -327,7 +327,7 @@ mixin EmailActionController on BaseController {
     final accountId = _sessionProvider.accountId.value;
     if (session == null || accountId == null || presentationEmail.id == null) return;
     consumeState(
-      _emailRegistry.flag.markAsRead(
+      Get.find<MarkAsEmailReadInteractor>().execute(
         session, accountId, presentationEmail.id!,
         readActions, markReadAction,
         presentationEmail.mailboxContain?.mailboxId,
@@ -363,7 +363,7 @@ mixin EmailActionController on BaseController {
         .toList();
 
     consumeState(
-      _emailRegistry.flag.markAsReadMultiple(
+      Get.find<MarkAsMultipleEmailReadInteractor>().execute(
         session, accountId,
         listEmailNeedMark.listEmailIds, readActions,
         listEmailNeedMark.emailIdsByMailboxId,
