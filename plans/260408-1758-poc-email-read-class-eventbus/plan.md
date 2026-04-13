@@ -2,7 +2,7 @@
 
 **Branch:** architecture  
 **Date:** 2026-04-08  
-**Status:** In progress (architecture evolved)
+**Status:** Complete
 
 ## Goal
 
@@ -56,9 +56,9 @@ _actionQueue.submit(MarkAsReadAction(...),
 | # | Phase | Status |
 |---|-------|--------|
 | 1 | [AppEventBus](phase-01-app-event-bus.md) | Done |
-| 2 | [EmailAction + EmailActionQueue + CancellationToken](phase-02-email-action-queue.md) | Todo |
+| 2 | [EmailAction + EmailActionQueue + CancellationToken](phase-02-email-action-queue.md) | Done |
 | 3 | [Wire EmailListStateProvider to EventBus](phase-03-wire-provider.md) | Done |
-| 4 | [Migrate controllers to use ActionQueue](phase-04-migrate-controllers.md) | Todo |
+| 4 | [Migrate controllers to use ActionQueue](phase-04-migrate-controllers.md) | Done |
 
 ## Key Constraints
 

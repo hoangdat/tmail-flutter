@@ -77,7 +77,6 @@ import 'package:tmail_ui_user/features/email/domain/usecases/add_a_label_to_an_e
 import 'package:tmail_ui_user/features/email/domain/usecases/delete_email_permanently_interactor.dart';
 import 'package:tmail_ui_user/features/email/domain/usecases/delete_multiple_emails_permanently_interactor.dart';
 import 'package:tmail_ui_user/features/email/domain/usecases/get_restored_deleted_message_interactor.dart';
-import 'package:tmail_ui_user/features/email/domain/usecases/mark_as_email_read_interactor.dart';
 import 'package:tmail_ui_user/features/email/domain/usecases/mark_as_star_email_interactor.dart';
 import 'package:tmail_ui_user/features/email/domain/usecases/move_to_mailbox_interactor.dart';
 import 'package:tmail_ui_user/features/email/domain/usecases/remove_a_label_from_an_email_interactor.dart';
@@ -214,7 +213,6 @@ import 'package:tmail_ui_user/features/thread/domain/state/refresh_all_email_sta
 import 'package:tmail_ui_user/features/thread/domain/usecases/empty_spam_folder_interactor.dart';
 import 'package:tmail_ui_user/features/thread/domain/usecases/empty_trash_folder_interactor.dart';
 import 'package:tmail_ui_user/features/thread/domain/usecases/get_email_by_id_interactor.dart';
-import 'package:tmail_ui_user/features/thread/domain/usecases/mark_as_multiple_email_read_interactor.dart';
 import 'package:tmail_ui_user/features/thread/domain/usecases/mark_as_star_multiple_email_interactor.dart';
 import 'package:tmail_ui_user/features/thread/domain/usecases/move_multiple_email_to_mailbox_interactor.dart';
 import 'package:tmail_ui_user/features/thread/presentation/model/delete_action_type.dart';
@@ -270,9 +268,7 @@ class MailboxDashBoardController extends ReloadableController
   final MarkAsMailboxReadInteractor _markAsMailboxReadInteractor;
   final GetComposerCacheOnWebInteractor _getEmailCacheOnWebInteractor;
   final GetIdentityCacheOnWebInteractor _getIdentityCacheOnWebInteractor;
-  final MarkAsEmailReadInteractor _markAsEmailReadInteractor;
   final MarkAsStarEmailInteractor _markAsStarEmailInteractor;
-  final MarkAsMultipleEmailReadInteractor _markAsMultipleEmailReadInteractor;
   final MarkAsStarMultipleEmailInteractor _markAsStarMultipleEmailInteractor;
   final MoveMultipleEmailToMailboxInteractor _moveMultipleEmailToMailboxInteractor;
   final EmptyTrashFolderInteractor _emptyTrashFolderInteractor;
@@ -379,9 +375,7 @@ class MailboxDashBoardController extends ReloadableController
     this._markAsMailboxReadInteractor,
     this._getEmailCacheOnWebInteractor,
     this._getIdentityCacheOnWebInteractor,
-    this._markAsEmailReadInteractor,
     this._markAsStarEmailInteractor,
-    this._markAsMultipleEmailReadInteractor,
     this._markAsStarMultipleEmailInteractor,
     this._moveMultipleEmailToMailboxInteractor,
     this._emptyTrashFolderInteractor,

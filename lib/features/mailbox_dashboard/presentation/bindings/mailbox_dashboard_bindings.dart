@@ -13,7 +13,6 @@ import 'package:tmail_ui_user/features/base/state/email_list_state_provider.dart
 import 'package:tmail_ui_user/features/base/state/mailbox_state_provider.dart';
 import 'package:tmail_ui_user/features/base/state/session_state_provider.dart';
 import 'package:tmail_ui_user/features/email/presentation/action/email_action_queue.dart';
-import 'package:tmail_ui_user/features/email/presentation/service/email_service_registry.dart';
 import 'package:tmail_ui_user/features/caching/caching_manager.dart';
 import 'package:tmail_ui_user/features/caching/utils/local_storage_manager.dart';
 import 'package:tmail_ui_user/features/caching/utils/session_storage_manager.dart';
@@ -234,9 +233,7 @@ class MailboxDashBoardBindings extends BaseBindings {
       Get.find<MarkAsMailboxReadInteractor>(),
       Get.find<GetComposerCacheOnWebInteractor>(),
       Get.find<GetIdentityCacheOnWebInteractor>(),
-      Get.find<MarkAsEmailReadInteractor>(),
       Get.find<MarkAsStarEmailInteractor>(),
-      Get.find<MarkAsMultipleEmailReadInteractor>(),
       Get.find<MarkAsStarMultipleEmailInteractor>(),
       Get.find<MoveMultipleEmailToMailboxInteractor>(),
       Get.find<EmptyTrashFolderInteractor>(),
@@ -258,10 +255,6 @@ class MailboxDashBoardBindings extends BaseBindings {
       Get.find<ClearMailboxInteractor>(),
       Get.find<StoreEmailSortOrderInteractor>(),
       Get.find<GetStoredEmailSortOrderInteractor>(),
-    ));
-    Get.put(EmailServiceRegistry(
-      Get.find<MarkAsEmailReadInteractor>(),
-      Get.find<MarkAsMultipleEmailReadInteractor>(),
     ));
     Get.put(AdvancedFilterController());
   }
