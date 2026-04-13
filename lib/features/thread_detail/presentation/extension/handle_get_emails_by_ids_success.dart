@@ -20,7 +20,7 @@ extension HandleGetEmailsByIdsSuccess on ThreadDetailController {
       final email = success.presentationEmails.first;
       final emailId = email.id;
       if (emailId == null) return;
-      EmailBindings(currentEmailId: emailId).dependencies();
+      EmailBindings(currentEmailId: emailId).dependencies(); // bo circular dependency - data constructor cho SigleEmailController
       currentExpandedEmailId.value = emailId;
       final isInternetConnected = await networkConnectionController.hasInternetConnection();
       

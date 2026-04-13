@@ -175,7 +175,7 @@ class MailboxDashBoardBindings extends BaseBindings {
     SendingQueueBindings().dependencies();
     MailboxBindings().dependencies();
     ThreadBindings().dependencies();
-    EmailBindings().dependencies();
+    EmailBindings().dependencies(); // ?????
     SearchEmailBindings().dependencies();
     QuotasBindings().dependencies();
     ThreadDetailBindings().dependencies();

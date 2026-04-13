@@ -995,7 +995,7 @@ class SingleEmailController extends BaseController with AppLoaderMixin {
         popBack();
         mailboxDashBoardController.deleteEmailPermanently(email);
         if (_threadDetailController?.emailIdsPresentation.length == 1) {
-          _threadDetailController?.closeThreadDetailAction();
+          _threadDetailController?.closeThreadDetailAction(); // Todo: refactor - event bus
         }
       },
       responsiveUtils: responsiveUtils,
