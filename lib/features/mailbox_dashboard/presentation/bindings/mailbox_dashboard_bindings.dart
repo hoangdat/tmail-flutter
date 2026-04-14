@@ -10,6 +10,7 @@ import 'package:get/get.dart';
 import 'package:tmail_ui_user/features/base/base_bindings.dart';
 import 'package:tmail_ui_user/features/base/event_bus/app_event_bus.dart';
 import 'package:tmail_ui_user/features/base/event_bus/bus_handler_registry.dart';
+import 'package:tmail_ui_user/features/base/service/toast_service.dart';
 import 'package:tmail_ui_user/features/base/state/email_list_state_provider.dart';
 import 'package:tmail_ui_user/features/base/state/mailbox_state_provider.dart';
 import 'package:tmail_ui_user/features/base/state/session_state_provider.dart';
@@ -196,6 +197,7 @@ class MailboxDashBoardBindings extends BaseBindings {
     Get.put(MailboxStateProvider());
     Get.put(EmailActionQueue(Get.find<AppEventBus>(), Get.find<SessionStateProvider>()));
     Get.put(EmailListStateProvider());
+    Get.put(ToastService());
     for (final factory in busHandlerFactories) {
       Get.put(factory());
     }

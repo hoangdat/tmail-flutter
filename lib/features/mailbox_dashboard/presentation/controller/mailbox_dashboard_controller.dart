@@ -66,9 +66,7 @@ import 'package:tmail_ui_user/features/email/domain/state/delete_multiple_emails
 import 'package:tmail_ui_user/features/email/domain/state/delete_sending_email_state.dart';
 import 'package:tmail_ui_user/features/email/domain/state/get_restored_deleted_message_state.dart';
 import 'package:tmail_ui_user/features/email/domain/model/mark_read_action.dart';
-import 'package:tmail_ui_user/features/email/domain/state/mark_as_email_read_state.dart';
 import 'package:tmail_ui_user/features/email/domain/state/mark_as_email_star_state.dart';
-import 'package:tmail_ui_user/features/thread/domain/state/mark_as_multiple_email_read_state.dart';
 import 'package:tmail_ui_user/features/email/domain/state/move_to_mailbox_state.dart';
 import 'package:tmail_ui_user/features/email/domain/state/restore_deleted_message_state.dart';
 import 'package:tmail_ui_user/features/email/domain/state/store_sending_email_state.dart';
@@ -1234,9 +1232,7 @@ class MailboxDashBoardController extends ReloadableController
         emailId, readActions, markReadAction, mailboxId,
         Get.find<MarkAsEmailReadInteractor>(),
       ),
-      onSuccess: (success) {
-        if (success is MarkAsEmailReadSuccess) _markAsReadEmailSuccess(success);
-      },
+      // toast + undo handled by MarkAsReadBusHandler via ToastService
     );
   }
 
@@ -1254,63 +1250,10 @@ class MailboxDashBoardController extends ReloadableController
         listEmailNeedMarkAsRead.emailIdsByMailboxId,
         Get.find<MarkAsMultipleEmailReadInteractor>(),
       ),
-      onSuccess: (success) {
-        if (success is MarkAsMultipleEmailReadAllSuccess) {
-          _markAsReadSelectedMultipleEmailSuccess(success.readActions, success.emailIds);
-        } else if (success is MarkAsMultipleEmailReadHasSomeEmailFailure) {
-          _markAsReadSelectedMultipleEmailSuccess(success.readActions, success.successEmailIds);
-        }
-      },
+      // toast handled by MarkAsReadBusHandler via ToastService
     );
   }
 
-  void _markAsReadSelectedMultipleEmailSuccess(ReadActions readActions, List<EmailId> emailIds) {
-    updateEmailFlagByEmailIds(emailIds, readAction: readActions);
-    if (currentContext != null && currentOverlayContext != null) {
-      final message = readActions == ReadActions.markAsUnread
-        ? AppLocalizations.of(currentContext!).marked_message_toast(AppLocalizations.of(currentContext!).unread)
-        : AppLocalizations.of(currentContext!).marked_message_toast(AppLocalizations.of(currentContext!).read);
-
-      appToast.showToastSuccessMessage(
-        currentOverlayContext!,
-        message,
-        leadingSVGIcon: readActions == ReadActions.markAsUnread
-          ? imagePaths.icUnreadToast
-          : imagePaths.icReadToast
-      );
-    }
-  }
-
-  void _markAsReadEmailSuccess(MarkAsEmailReadSuccess success) {
-    updateEmailFlagByEmailIds(
-      [success.emailId],
-      readAction: success.readActions,
-    );
-    if (currentContext != null &&
-        currentOverlayContext != null &&
-        success.markReadAction == MarkReadAction.swipeOnThread) {
-      final message = success.readActions == ReadActions.markAsUnread
-        ? AppLocalizations.of(currentContext!).markedSingleMessageToast(AppLocalizations.of(currentContext!).unread.toLowerCase())
-        : AppLocalizations.of(currentContext!).markedSingleMessageToast(AppLocalizations.of(currentContext!).read.toLowerCase());
-
-      final undoAction = success.readActions == ReadActions.markAsUnread
-          ? ReadActions.markAsRead
-          : ReadActions.markAsUnread;
-
-      appToast.showToastMessage(
-        currentOverlayContext!,
-        message,
-        actionName: AppLocalizations.of(currentContext!).undo,
-        onActionClick: () {
-          markAsEmailRead(success.emailId, undoAction, MarkReadAction.undo, success.mailboxId);
-        },
-        leadingSVGIcon: imagePaths.icToastSuccessMessage,
-        backgroundColor: AppColor.toastSuccessBackgroundColor,
-        textColor: Colors.white,
-        actionIcon: SvgPicture.asset(imagePaths.icUndo),
-      );
-    }
-  }
 
   void markAsStarEmail(PresentationEmail presentationEmail, MarkStarAction action) {
     if (accountId.value != null && sessionCurrent != null) {

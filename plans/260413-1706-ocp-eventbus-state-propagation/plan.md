@@ -139,8 +139,31 @@ class EmailActionQueue extends GetxService {
 |---|-------|--------|
 | 1 | Architecture understanding & `consumeState` replacement | Done |
 | 2 | Split `EmailListStateProvider` into pure store + bus handlers | Done |
+| 2a | Fix: BusHandler registry — eliminate silent registration failure | Done |
+| 2b | Fix: Double state update — strip state mutations from `onSuccess` callbacks | Done |
 | 3 | `handleSuccessViewState` cleanup (remove email action dispatching) | Todo |
 | 4 | Loading state via `ActionLoadingState` on EventBus | Optional |
+
+### Phase 2b — Double State Update Fix (Done)
+
+**Problem:** After Phase 2, mark-as-read triggered two state updates:
+1. `MarkAsReadBusHandler` → `EmailListStateProvider.updateEmailFlagByEmailIds()` (new path)
+2. `onSuccess` callback → controller `_markAsReadEmailSuccess()` → same mutation (old leftover)
+
+**Also found:** `MarkAsReadBusHandler` only handled `MarkAsMultipleEmailReadAllSuccess` but not `MarkAsMultipleEmailReadHasSomeEmailFailure` — partial success left some emails with stale flags.
+
+**Fix:**
+- `MarkAsReadBusHandler` — added `_readPartialSuccessSub` for `MarkAsMultipleEmailReadHasSomeEmailFailure`, using `s.successEmailIds`
+- `MailboxDashBoardController` — renamed `_markAsReadEmailSuccess` → `_showMarkAsReadEmailToast` (UI only), renamed `_markAsReadSelectedMultipleEmailSuccess` → `_showMarkAsMultipleReadToast` (UI only). State mutation removed from both.
+- `onSuccess` callbacks now call toast-only methods — zero state mutations
+
+**Rule established:** `onSuccess` callbacks = UI reactions only (toast, navigation, undo). State mutations = BusHandler only. Enforced by naming convention (`_show*Toast`).
+
+### Phase 2a — BusHandler Registry (Done)
+
+**Problem:** Adding a new `BusHandler` required manually adding `Get.put(XBusHandler())` in bindings — forgetting was a silent failure (handler never subscribes, state never updates, no error).
+
+**Fix:** Central registry at `lib/features/base/event_bus/bus_handler_registry.dart`. Bindings loop over `busHandlerFactories`. Adding a handler = one entry in the registry.
 
 ### Phase 2 — Bus Handler Pattern (Done)
 
@@ -152,7 +175,8 @@ class EmailActionQueue extends GetxService {
 lib/features/base/
 ├── event_bus/
 │   ├── app_event_bus.dart
-│   ├── mark_as_read_bus_handler.dart     ← subscribes to read events
+│   ├── bus_handler_registry.dart         ← central registry, prevents silent failure
+│   ├── mark_as_read_bus_handler.dart     ← subscribes to read events (single + multiple + partial)
 │   └── get_all_email_bus_handler.dart    ← subscribes to get-all-email
 └── state/
     └── email_list_state_provider.dart    ← pure state store, zero bus knowledge
@@ -161,7 +185,7 @@ lib/features/base/
 **Adding a new feature (e.g., Mark as Star):**
 1. `MarkAsStarEmailAction extends EmailAction` → new file
 2. `MarkAsStarBusHandler extends GetxService` → new file, calls `provider.updateEmailFlagByEmailIds(..., markStarAction:)`
-3. Register in bindings → 1-line `Get.put(MarkAsStarBusHandler())`
+3. Add to `busHandlerFactories` in registry → 1 entry (cannot be forgotten)
 4. Zero edits to `EmailListStateProvider`, zero edits to existing handlers
 
 ---
