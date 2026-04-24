@@ -11,12 +11,12 @@ import '../../robots/mailbox_menu_robot.dart';
 import '../../robots/thread_robot.dart';
 
 class TeamMailboxReceiveEmailScenario extends BaseTestScenario {
-  const TeamMailboxReceiveEmailScenario(super.$, super.robots);
-  
+  const TeamMailboxReceiveEmailScenario(super.$, super.robots, {super.credentials});
+
   @override
   Future<void> runTestLogic() async {
-    const teamMailboxName = 'bob-guests';
-    const teamMailboxEmail = '$teamMailboxName@example.com';
+    final teamMailboxName = '${credentials?.username ?? 'bob'}-guests';
+    final teamMailboxEmail = '$teamMailboxName@example.com';
     const subject = 'email to team mailbox';
 
     final threadRobot = ThreadRobot($);

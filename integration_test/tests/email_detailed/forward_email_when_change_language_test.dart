@@ -5,6 +5,6 @@ void main() {
   TestBase().runPatrolTest(
     description:
         'The forward prefix should be displayed correctly when forwarding an email.',
-    scenarioBuilder: ($, robots) => ForwardEmailWhenChangeLanguageScenario($, robots),
+    scenarioBuilder: ($, robots, _) => ForwardEmailWhenChangeLanguageScenario($, robots),
   );
 }

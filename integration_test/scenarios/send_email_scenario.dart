@@ -5,16 +5,15 @@ import 'package:tmail_ui_user/main/localizations/app_localizations.dart';
 import '../base/base_test_scenario.dart';
 
 class SendEmailScenario extends BaseTestScenario {
-  const SendEmailScenario(super.$, super.robots, {this.customSubject});
+  const SendEmailScenario(super.$, super.robots, {super.credentials, this.customSubject});
 
   final String? customSubject;
 
   @override
   Future<void> runTestLogic() async {
-    const additionalRecipient = String.fromEnvironment('ADDITIONAL_MAIL_RECIPIENT');
-    const email = String.fromEnvironment('BASIC_AUTH_EMAIL');
     const subject = 'Test subject';
     const content = 'Test content';
+    final email = credentials?.email ?? const String.fromEnvironment('BASIC_AUTH_EMAIL');
 
     await robots.threadRobot().openComposer();
     await robots.composerRobot().expectComposerViewVisible();
@@ -22,7 +21,6 @@ class SendEmailScenario extends BaseTestScenario {
     await robots.composerRobot().grantContactPermission();
 
     await robots.composerRobot().addRecipient(PrefixEmailAddress.to, email);
-    await robots.composerRobot().addRecipient(PrefixEmailAddress.to, additionalRecipient);
     await robots.composerRobot().addSubject(customSubject ?? subject);
     await robots.composerRobot().addContent(content);
     await robots.composerRobot().send();

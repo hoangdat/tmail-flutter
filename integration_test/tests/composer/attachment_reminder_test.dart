@@ -5,6 +5,6 @@ void main() {
   TestBase().runPatrolTest(
     description:
         'Should not see attachment reminder when send email with attachment keyword in signature',
-    scenarioBuilder: ($, robots) => AttachmentReminderScenario($, robots),
+    scenarioBuilder: ($, robots, _) => AttachmentReminderScenario($, robots),
   );
 }

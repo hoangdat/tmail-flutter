@@ -6,6 +6,6 @@ void main() {
     description:
       'SHOULD see the Subject contain the prefix `Re:`\n'
       'AND the To field should contain the email\'s `List-Post` address.',
-    scenarioBuilder: ($, robots) => ReplyToListEmailScenario($, robots),
+    scenarioBuilder: ($, robots, _) => ReplyToListEmailScenario($, robots),
   );
 }

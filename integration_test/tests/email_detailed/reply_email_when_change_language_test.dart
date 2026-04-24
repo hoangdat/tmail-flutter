@@ -4,6 +4,6 @@ import '../../scenarios/email_detailed/reply_email_when_change_language_scenario
 void main() {
   TestBase().runPatrolTest(
     description: 'The reply prefix should be displayed correctly when replying to an email.',
-    scenarioBuilder: ($, robots) => ReplyEmailWhenChangeLanguageScenario($, robots),
+    scenarioBuilder: ($, robots, _) => ReplyEmailWhenChangeLanguageScenario($, robots),
   );
 }

@@ -13,7 +13,7 @@ import '../robots/search_robot.dart';
 import '../robots/thread_robot.dart';
 
 class SearchEmailWithSortOrderScenario extends BaseTestScenario {
-  const SearchEmailWithSortOrderScenario(super.$, super.robots);
+  const SearchEmailWithSortOrderScenario(super.$, super.robots, {super.credentials});
 
   static const queryString = 'hello';
   static const listUsername = ['Alice', 'Brian', 'Charlotte', 'David', 'Emma'];

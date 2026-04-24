@@ -5,6 +5,6 @@ void main() {
   TestBase().runPatrolTest(
     description:
         'Should remove tag on email subject when clicking on the cross on a tag in the opened mail',
-    scenarioBuilder: ($, robots) => RemoveALabelFromEmailScenario($, robots),
+    scenarioBuilder: ($, robots, _) => RemoveALabelFromEmailScenario($, robots),
   );
 }

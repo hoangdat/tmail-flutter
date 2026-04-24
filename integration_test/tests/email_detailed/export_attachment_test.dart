@@ -4,6 +4,6 @@ import '../../scenarios/email_detailed/export_attachment_scenario.dart';
 void main() {
   TestBase().runPatrolTest(
     description: 'Should auto preview attachment when export attachment successfully',
-    scenarioBuilder: ($, robots) => ExportAttachmentScenario($, robots),
+    scenarioBuilder: ($, robots, _) => ExportAttachmentScenario($, robots),
   );
 }

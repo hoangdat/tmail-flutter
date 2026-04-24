@@ -34,3 +34,5 @@ Accepted
 - Backend docker container is initiated before Patrol tests run, and close after all tests have run. This lead to no data isolation between tests
 - Patrol gives no way of accessing Docker from system, due to when it runs, it bundle all tests into a single apk, and apk cannot access the system's terminal
 - Tried https://github.com/testcontainers/testcontainers-java but also failed, with the same reason as Patrol.
+
+> **Addressed by [ADR-0085](./0085-e2e-test-isolation-strategy.md)** — user-per-test isolation via provisioning profiles eliminates both the data isolation and Docker access limitations without requiring container restarts.

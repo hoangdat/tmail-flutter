@@ -5,7 +5,7 @@ void main() {
   TestBase().runPatrolTest(
     description:
         'Should display NoLabelYetWidget when opening Choose Label modal with no labels',
-    scenarioBuilder: ($, robots) =>
+    scenarioBuilder: ($, robots, _) =>
         DisplayNoLabelYetWidgetWhenOpenChooseLabelModalScenario($, robots),
   );
 }

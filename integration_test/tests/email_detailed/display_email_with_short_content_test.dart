@@ -4,6 +4,6 @@ import '../../scenarios/email_detailed/display_email_with_short_content_scenario
 void main() {
   TestBase().runPatrolTest(
     description: 'Should display full content when opening a short email',
-    scenarioBuilder: ($, robots) => DisplayEmailWithShortContentScenario($, robots),
+    scenarioBuilder: ($, robots, _) => DisplayEmailWithShortContentScenario($, robots),
   );
 }

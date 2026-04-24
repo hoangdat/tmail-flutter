@@ -4,6 +4,6 @@ import '../../scenarios/mailbox/mailbox_move_email_scenario.dart';
 void main() {
   TestBase().runPatrolTest(
     description: 'Should move email to mailbox successfully',
-    scenarioBuilder: ($, robots) => MailboxMoveEmailScenario($, robots),
+    scenarioBuilder: ($, robots, _) => MailboxMoveEmailScenario($, robots),
   );
 }

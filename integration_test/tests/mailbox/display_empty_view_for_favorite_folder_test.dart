@@ -4,6 +4,6 @@ import '../../scenarios/mailbox/display_empty_view_for_favorite_folder_scenario.
 void main() {
   TestBase().runPatrolTest(
     description: 'Should display empty view when no mail favorites',
-    scenarioBuilder: ($, robots) => DisplayEmptyViewForFavoriteFolderScenario($, robots),
+    scenarioBuilder: ($, robots, _) => DisplayEmptyViewForFavoriteFolderScenario($, robots),
   );
 }

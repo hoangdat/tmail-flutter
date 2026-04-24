@@ -4,6 +4,6 @@ import '../../scenarios/search_suggestion_highlights_scenario.dart';
 void main() {
   TestBase().runPatrolTest(
     description: 'Should see highlighted keyword in search suggestion',
-    scenarioBuilder: ($, robots) => SearchSuggestionHighlightsScenario($, robots),
+    scenarioBuilder: ($, robots, _) => SearchSuggestionHighlightsScenario($, robots),
   );
 }

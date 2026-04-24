@@ -6,6 +6,6 @@ void main() {
     description: 'Should fill subject with reply prefix '
         'when user taps mail to attendees button '
         'on calendar event email',
-    scenarioBuilder: ($, robots) => MailToAttendeesEventEmailScenario($, robots),
+    scenarioBuilder: ($, robots, _) => MailToAttendeesEventEmailScenario($, robots),
   );
 }

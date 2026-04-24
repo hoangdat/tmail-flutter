@@ -6,11 +6,11 @@ import '../../robots/mailbox_menu_robot.dart';
 import '../../robots/thread_robot.dart';
 
 class QuotaCountScenario extends BaseTestScenario {
-  const QuotaCountScenario(super.$, super.robots);
-  
+  const QuotaCountScenario(super.$, super.robots, {super.credentials});
+
   @override
   Future<void> runTestLogic() async {
-    const email = String.fromEnvironment('BASIC_AUTH_EMAIL');
+    final email = credentials?.email ?? const String.fromEnvironment('BASIC_AUTH_EMAIL');
 
     final threadRobot = ThreadRobot($);
     final mailboxMenuRobot = MailboxMenuRobot($);

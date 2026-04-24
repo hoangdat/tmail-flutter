@@ -127,5 +127,10 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Required for Patrol integration tests -->
+        <service
+            android:name="pl.leancode.patrol.PatrolAppService"
+            android:exported="true" />
     </application>
 </manifest>

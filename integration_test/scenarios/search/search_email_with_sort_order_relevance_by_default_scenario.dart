@@ -10,7 +10,7 @@ import '../../robots/thread_robot.dart';
 
 class SearchEmailWithSortOrderRelevanceByDefaultScenario
     extends BaseTestScenario {
-  const SearchEmailWithSortOrderRelevanceByDefaultScenario(super.$, super.robots);
+  const SearchEmailWithSortOrderRelevanceByDefaultScenario(super.$, super.robots, {super.credentials});
 
   static const queryString = 'Relevance by default';
   static const listUsername = ['Alice', 'Brian', 'Charlotte', 'David', 'Emma'];

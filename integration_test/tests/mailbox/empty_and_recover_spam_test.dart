@@ -4,6 +4,6 @@ import '../../scenarios/mailbox/empty_and_recover_spam_scenario.dart';
 void main() {
   TestBase().runPatrolTest(
     description: 'Should empty and recover spam successfully',
-    scenarioBuilder: ($, robots) => EmptyAndRecoverSpamScenario($, robots),
+    scenarioBuilder: ($, robots, _) => EmptyAndRecoverSpamScenario($, robots),
   );
 } 
