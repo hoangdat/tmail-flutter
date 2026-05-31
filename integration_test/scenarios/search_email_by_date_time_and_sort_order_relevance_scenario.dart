@@ -2,14 +2,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tmail_ui_user/features/mailbox_dashboard/presentation/model/search/email_receive_time_type.dart';
 import 'package:tmail_ui_user/features/mailbox_dashboard/presentation/model/search/email_sort_order_type.dart';
-import 'package:tmail_ui_user/features/search/email/presentation/search_email_view.dart';
-import 'package:tmail_ui_user/features/thread/presentation/widgets/email_tile_builder.dart';
+import 'package:tmail_ui_user/features/thread/presentation/widgets/email_tile_builder.dart'
+  if (dart.library.html) 'package:tmail_ui_user/features/thread/presentation/widgets/email_tile_web_builder.dart';
 import 'package:tmail_ui_user/main/localizations/app_localizations.dart';
 
 import '../base/base_test_scenario.dart';
 import '../models/provisioning_email.dart';
-import '../robots/search_robot.dart';
-import '../robots/thread_robot.dart';
 
 class SearchEmailByDatetimeAndSortOrderRelevanceScenario extends BaseTestScenario {
 
@@ -31,13 +29,11 @@ class SearchEmailByDatetimeAndSortOrderRelevanceScenario extends BaseTestScenari
     await provisionEmail(listProvisioningEmail);
     await $.pumpAndSettle();
 
-    final threadRobot = ThreadRobot($);
-    await threadRobot.openSearchView();
-    await _expectSearchViewVisible();
+    final searchRobot = robots.searchRobot();
+    await searchRobot.tapOnSearchField();
 
-    final searchRobot = SearchRobot($);
-    await searchRobot.enterQueryString(queryString);
-    await _expectSuggestionSearchListViewVisible();
+    await searchRobot.enterKeyword(queryString);
+    await searchRobot.tapOnShowAllResultsText();
 
     await searchRobot.scrollToDateTimeButtonFilter();
     await _expectDateTimeSearchFilterButtonVisible();
@@ -68,15 +64,6 @@ class SearchEmailByDatetimeAndSortOrderRelevanceScenario extends BaseTestScenari
     await _expectEmailListDisplayedCorrectly(listProvisioningEmail);
   }
 
-
-  Future<void> _expectSearchViewVisible() async {
-    await expectViewVisible($(SearchEmailView));
-  }
-
-  Future<void> _expectSuggestionSearchListViewVisible() async {
-    await expectViewVisible($(#suggestion_search_list_view));
-  }
-
   Future<void> _expectDateTimeSearchFilterButtonVisible() async {
     await expectViewVisible($(#mobile_dateTime_search_filter_button));
   }
@@ -84,7 +71,7 @@ class SearchEmailByDatetimeAndSortOrderRelevanceScenario extends BaseTestScenari
   Future<void> _expectDateTimeFilterContextMenuVisible() async {
     await expectViewVisible($(#date_time_filter_context_menu));
   }
-  
+
   Future<void> _expectSearchResultEmailListVisible() async {
     await expectViewVisible($(#search_email_list_notification_listener));
   }

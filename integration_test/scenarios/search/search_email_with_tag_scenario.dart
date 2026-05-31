@@ -1,13 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labels/labels.dart';
-import 'package:tmail_ui_user/features/search/email/presentation/search_email_view.dart';
-import 'package:tmail_ui_user/features/thread/presentation/widgets/email_tile_builder.dart';
+import 'package:tmail_ui_user/features/thread/presentation/widgets/email_tile_builder.dart'
+  if (dart.library.html) 'package:tmail_ui_user/features/thread/presentation/widgets/email_tile_web_builder.dart';
 
 import '../../base/base_test_scenario.dart';
 import '../../mixin/provisioning_label_scenario_mixin.dart';
 import '../../robots/labels/label_list_context_menu_robot.dart';
-import '../../robots/search_robot.dart';
-import '../../robots/thread_robot.dart';
 
 class SearchEmailWithTagScenario extends BaseTestScenario
     with ProvisioningLabelScenarioMixin {
@@ -17,8 +15,7 @@ class SearchEmailWithTagScenario extends BaseTestScenario
   Future<void> runTestLogic() async {
     const emailUser = String.fromEnvironment('BASIC_AUTH_EMAIL');
 
-    final threadRobot = ThreadRobot($);
-    final searchRobot = SearchRobot($);
+    final searchRobot = robots.searchRobot();
     final labelListContextMenuRobot = LabelListContextMenuRobot($);
 
     final labels = await provisionLabelsByDisplayNames(
@@ -37,10 +34,12 @@ class SearchEmailWithTagScenario extends BaseTestScenario
         requestReadReceipt: false,
       );
     }
-    await $(EmailTileBuilder).waitUntilVisible();
 
-    await threadRobot.openSearchView();
-    await _expectSearchViewVisible();
+    if (labels.isNotEmpty) {
+      await $.waitUntilVisible($(labels.first.safeDisplayName));
+    }
+
+    await searchRobot.tapOnSearchField();
 
     for (final label in labels) {
       final labelDisplayName = label.safeDisplayName;
@@ -58,10 +57,6 @@ class SearchEmailWithTagScenario extends BaseTestScenario
     }
   }
 
-  Future<void> _expectSearchViewVisible() async {
-    await expectViewVisible($(SearchEmailView));
-  }
-
   Future<void> _expectLabelListContextMenuVisible() async {
     await expectViewVisible($(#label_list_bottom_sheet_context_menu));
   }
@@ -70,7 +65,7 @@ class SearchEmailWithTagScenario extends BaseTestScenario
     required String tagDisplayName,
     required int emailCount,
   }) async {
-    await $(EmailTileBuilder).waitUntilVisible();
+    await $.waitUntilVisible($(tagDisplayName));
     for (int i = 0; i < 3; i++) {
       final count = $.tester.widgetList<EmailTileBuilder>(
         $(EmailTileBuilder).which<EmailTileBuilder>((widget) =>
@@ -80,7 +75,6 @@ class SearchEmailWithTagScenario extends BaseTestScenario
       await $.pump(const Duration(seconds: 1));
     }
 
-    // Emails provisioned by buildEmailsForLabel include the tag name in the subject
     final listEmailTileWithTag = $(EmailTileBuilder).which<EmailTileBuilder>((widget) =>
         widget.subjectContains(tagDisplayName)).allCandidates;
 
