@@ -92,7 +92,12 @@ class CoreBindings extends Bindings {
         groupId: AppConfig.iOSKeychainSharingGroupId,
         accountName: AppConfig.iOSKeychainSharingService,
         accessibility: KeychainAccessibility.first_unlock_this_device
-      )
+      ),
+      // After an Android OS upgrade / backup-restore the Keystore key can be
+      // lost while ciphertext remains, making reads throw BadPaddingException.
+      // resetOnError drops the unreadable entries instead of crash-looping, so
+      // the app falls back to normal re-authentication.
+      aOptions: AndroidOptions(resetOnError: true),
     ));
     Get.put(LocalStorageManager());
     Get.put(SessionStorageManager());

@@ -8,6 +8,10 @@ import 'package:tmail_ui_user/features/login/data/model/token_oidc_cache.dart';
 class MemoryTokenOidcCacheClient extends TokenOidcCacheClient {
   final Map<String, TokenOidcCache> _store = {};
 
+  // Simulates a corrupted Hive box: getMapItems throws when set (used to verify
+  // the secure-storage migration swallows legacy-read failures).
+  bool throwOnGetMapItems = false;
+
   @override
   Future<TokenOidcCache?> getItem(String key, {bool isolated = true}) async =>
       _store[key];
@@ -31,8 +35,12 @@ class MemoryTokenOidcCacheClient extends TokenOidcCacheClient {
   Future<void> clearAllData({bool isolated = true}) async => _store.clear();
 
   @override
-  Future<Map<String, TokenOidcCache>> getMapItems({bool isolated = true}) async =>
-      Map.of(_store);
+  Future<Map<String, TokenOidcCache>> getMapItems({bool isolated = true}) async {
+    if (throwOnGetMapItems) {
+      throw ArgumentError('corrupted legacy box');
+    }
+    return Map.of(_store);
+  }
 
   @override
   Future<List<TokenOidcCache>> getAll({bool isolated = true}) async =>

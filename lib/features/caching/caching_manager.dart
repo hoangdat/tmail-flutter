@@ -14,6 +14,7 @@ import 'package:tmail_ui_user/features/login/data/local/authentication_info_cach
 import 'package:tmail_ui_user/features/login/data/local/encryption_key_cache_manager.dart';
 import 'package:tmail_ui_user/features/login/data/local/oidc_configuration_cache_manager.dart';
 import 'package:tmail_ui_user/features/login/data/local/token_oidc_cache_manager.dart';
+import 'package:tmail_ui_user/features/login/data/local/token_oidc_secure_storage_manager.dart';
 import 'package:tmail_ui_user/features/mailbox/data/local/mailbox_cache_manager.dart';
 import 'package:tmail_ui_user/features/mailbox/data/local/state_cache_manager.dart';
 import 'package:tmail_ui_user/features/offline_mode/manager/new_email_cache_manager.dart';
@@ -217,5 +218,14 @@ class CachingManager {
           _sendingEmailCacheManager.migrateHiveToIsolatedHive(),
         ]
     ]);
+  }
+
+  /// One-time move of the OIDC token from the legacy Hive box into secure
+  /// storage. No-op when the token manager is not the secure-storage variant.
+  Future<void> migrateTokenOidcToSecureStorage() async {
+    final tokenManager = _tokenOidcCacheManager;
+    if (tokenManager is TokenOidcSecureStorageManager) {
+      await tokenManager.migrateHiveTokenToSecureStorage();
+    }
   }
 }

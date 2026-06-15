@@ -35,6 +35,7 @@ import 'package:tmail_ui_user/features/login/data/local/authentication_info_cach
 import 'package:tmail_ui_user/features/login/data/local/encryption_key_cache_manager.dart';
 import 'package:tmail_ui_user/features/login/data/local/oidc_configuration_cache_manager.dart';
 import 'package:tmail_ui_user/features/login/data/local/token_oidc_cache_manager.dart';
+import 'package:tmail_ui_user/features/login/data/local/token_oidc_secure_storage_manager.dart';
 import 'package:tmail_ui_user/features/mailbox/data/local/mailbox_cache_manager.dart';
 import 'package:tmail_ui_user/features/mailbox/data/local/state_cache_manager.dart';
 import 'package:tmail_ui_user/features/mailbox_creator/domain/usecases/verify_name_interactor.dart';
@@ -85,7 +86,12 @@ class LocalBindings extends Bindings {
 
   void _bindingAccountCache() {
     Get.put(TokenOidcCacheClient());
-    Get.put(TokenOidcCacheManager(Get.find<TokenOidcCacheClient>()));
+    // OIDC token lives in secure storage (atomic OS writes), not Hive. Registered
+    // under the TokenOidcCacheManager type so existing consumers resolve it as-is.
+    Get.put<TokenOidcCacheManager>(TokenOidcSecureStorageManager(
+      Get.find<FlutterSecureStorage>(),
+      Get.find<TokenOidcCacheClient>(),
+    ));
     Get.put(AccountCacheClient());
     Get.put(AccountCacheManager(Get.find<AccountCacheClient>()));
     Get.put(EncryptionKeyCacheClient());
