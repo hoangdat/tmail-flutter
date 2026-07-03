@@ -16,6 +16,7 @@ import 'package:model/email/attachment.dart';
 import 'package:tmail_ui_user/features/download/domain/exceptions/download_attachment_exceptions.dart';
 import 'package:tmail_ui_user/features/download/domain/state/download_attachment_for_web_state.dart';
 import 'package:tmail_ui_user/features/download/domain/usecase/download_attachment_for_web_interactor.dart';
+import 'package:tmail_ui_user/features/email/presentation/widgets/pdf_viewer/pdf_encryption_detector.dart';
 import 'package:tmail_ui_user/main/localizations/app_localizations.dart';
 import 'package:tmail_ui_user/main/routes/route_navigation.dart';
 import 'package:twake_previewer_flutter/core/previewer_options/options/loading_options.dart';
@@ -69,12 +70,27 @@ class _PDFViewerState extends State<PDFViewer> {
   void _initialStreamListener() {
     _downloadAttachmentStreamController = StreamController<dartz.Either<Failure, Success>>.broadcast();
     
-    _downloadAttachmentStreamSubscription = _downloadAttachmentStreamController.stream.listen((viewState) {
-      viewState.fold(
-        (failure) => _pdfViewStateNotifier.value = failure,
-        (success) => _pdfViewStateNotifier.value = success
-      );
-    });
+    _downloadAttachmentStreamSubscription =
+        _downloadAttachmentStreamController.stream.listen(_handleViewState);
+  }
+
+  void _handleViewState(dartz.Either<Failure, Success> viewState) {
+    viewState.fold(
+      (failure) => _pdfViewStateNotifier.value = failure,
+      (success) {
+        // Password-protected PDFs cannot be rendered by the previewer; route to
+        // a failure state with a friendly message instead of handing encrypted
+        // bytes to the renderer (which would surface its raw error banner).
+        if (success is DownloadAttachmentForWebSuccess &&
+            isEncryptedPdf(success.bytes)) {
+          _pdfViewStateNotifier.value = DownloadAttachmentForWebFailure(
+            exception: EncryptedPdfException(),
+          );
+        } else {
+          _pdfViewStateNotifier.value = success;
+        }
+      },
+    );
   }
   
   void _downloadAttachmentAction() {
@@ -93,12 +109,7 @@ class _PDFViewerState extends State<PDFViewer> {
       widget.downloadUrl,
       onReceiveController: _downloadAttachmentStreamController,
       cancelToken: _downloadAttachmentCancelToken
-    ).listen((viewState) {
-      viewState.fold(
-        (failure) => _pdfViewStateNotifier.value = failure,
-        (success) => _pdfViewStateNotifier.value = success
-      );
-    });
+    ).listen(_handleViewState);
   }
 
   bool isBrowserSupportedPrinting(BrowserName browserName) => !(browserName == BrowserName.edge
@@ -155,7 +166,13 @@ class _PDFViewerState extends State<PDFViewer> {
               DownloadAttachmentForWebSuccess(attachment: final attachment) => attachment.generateFileName(),
               _ => '',
             };
-            
+
+            final errorMessage = switch (viewState) {
+              DownloadAttachmentForWebFailure(exception: EncryptedPdfException()) =>
+                AppLocalizations.of(context).pdfPasswordProtectedPreviewUnavailable,
+              _ => AppLocalizations.of(context).noPreviewAvailable,
+            };
+
             return TwakePdfPreviewer(
               bytes: Uint8List.fromList(bytes ?? []),
               previewerOptions: PreviewerOptions(
@@ -164,7 +181,7 @@ class _PDFViewerState extends State<PDFViewer> {
                   logWarning('_PDFViewerState::build:openData:onError:: $error');
                   _pdfViewStateNotifier.value = DownloadAttachmentForWebFailure(exception: error);
                 },
-                errorMessage: AppLocalizations.of(context).noPreviewAvailable,
+                errorMessage: errorMessage,
               ),
               loadingOptions: LoadingOptions(
                 progress: downloadProgress,

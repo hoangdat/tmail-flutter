@@ -1535,6 +1535,13 @@ class AppLocalizations {
     );
   }
 
+  String get pdfPasswordProtectedPreviewUnavailable {
+    return Intl.message(
+      "This PDF is password-protected, so it can't be previewed. Download it to open.",
+      name: 'pdfPasswordProtectedPreviewUnavailable',
+    );
+  }
+
   String get wrongUrlMessage {
     return Intl.message('Server URL is not valid, please try again',
         name: 'wrongUrlMessage');

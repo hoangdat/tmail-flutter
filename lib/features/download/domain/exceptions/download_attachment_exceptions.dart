@@ -20,3 +20,10 @@ class DownloadUrlIsNullException extends AppBaseException {
   @override
   String get exceptionName => 'DownloadUrlIsNullException';
 }
+
+class EncryptedPdfException extends AppBaseException {
+  EncryptedPdfException([super.message]);
+
+  @override
+  String get exceptionName => 'EncryptedPdfException';
+}

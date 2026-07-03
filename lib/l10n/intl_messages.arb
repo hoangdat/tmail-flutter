@@ -1,5 +1,5 @@
 {
-  "@@last_modified": "2026-06-02T10:52:48.670230",
+  "@@last_modified": "2026-07-03T10:32:36.153622",
   "initializing_data": "Initializing data...",
   "@initializing_data": {
     "type": "text",
@@ -1530,6 +1530,12 @@
     "placeholders_order": [],
     "placeholders": {}
   },
+  "pdfPasswordProtectedPreviewUnavailable": "This PDF is password-protected, so it can't be previewed. Download it to open.",
+  "@pdfPasswordProtectedPreviewUnavailable": {
+    "type": "text",
+    "placeholders_order": [],
+    "placeholders": {}
+  },
   "wrongUrlMessage": "Server URL is not valid, please try again",
   "@wrongUrlMessage": {
     "type": "text",
@@ -1638,6 +1644,12 @@
     "placeholders_order": [],
     "placeholders": {}
   },
+  "languageMongolian": "Mongolian",
+  "@languageMongolian": {
+    "type": "text",
+    "placeholders_order": [],
+    "placeholders": {}
+  },
   "languageVietnamese": "Vietnamese",
   "@languageVietnamese": {
     "type": "text",
@@ -1664,12 +1676,6 @@
   },
   "languageItalian": "Italian",
   "@languageItalian": {
-    "type": "text",
-    "placeholders_order": [],
-    "placeholders": {}
-  },
-  "languageMongolian": "Mongolian",
-  "@languageMongolian": {
     "type": "text",
     "placeholders_order": [],
     "placeholders": {}
