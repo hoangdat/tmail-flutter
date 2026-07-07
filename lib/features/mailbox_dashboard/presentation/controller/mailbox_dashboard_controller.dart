@@ -1077,7 +1077,6 @@ class MailboxDashBoardController extends ReloadableController
       _closeEmailDetailedView();
     }
     _unSelectedMailbox();
-    searchController.clearFilterSuggestion();
     FocusManager.instance.primaryFocus?.unfocus();
     storeEmailSortOrder(searchController.searchEmailFilter.value.sortOrderType);
     dispatchAction(StartSearchEmailAction());
@@ -1102,12 +1101,13 @@ class MailboxDashBoardController extends ReloadableController
       _closeEmailDetailedView();
     }
     _unSelectedMailbox();
-    searchController.clearFilterSuggestion();
 
+    // A bare email address routes to the `from` filter; clear the live text term
+    // so the same string is not also applied as a full-text condition.
     searchController.updateFilterEmail(
-      textOption: !isMailAddress
-        ? Some(SearchQuery(queryString))
-        : null,
+      textOption: isMailAddress
+        ? const None()
+        : Some(SearchQuery(queryString)),
       fromOption: isMailAddress
         ? Some({queryString})
         : null);
@@ -2135,8 +2135,8 @@ class MailboxDashBoardController extends ReloadableController
       return searchController.quickSearchEmails(
         session: sessionCurrent!,
         accountId: accountId.value!,
-        ownEmailAddress: ownEmailAddress.value,
-        query: query
+        query: query,
+        trashSpamMailboxIds: trashSpamMailboxIds,
       );
     } else {
       return [];
@@ -3023,7 +3023,6 @@ class MailboxDashBoardController extends ReloadableController
   void quickSearchEmailByFrom(EmailAddress emailAddress) {
     FocusManager.instance.primaryFocus?.unfocus();
     clearFilterMessageOption();
-    searchController.clearFilterSuggestion();
     if (_searchInsideThreadDetailViewIsActive()) {
       _closeEmailDetailedView();
     }

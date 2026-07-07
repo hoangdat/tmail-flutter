@@ -1,5 +1,5 @@
 {
-  "@@last_modified": "2026-06-02T10:52:48.670230",
+  "@@last_modified": "2026-07-07T12:07:34.502595",
   "initializing_data": "Initializing data...",
   "@initializing_data": {
     "type": "text",
@@ -1472,6 +1472,12 @@
     "placeholders_order": [],
     "placeholders": {}
   },
+  "ssoRedirectFailedMessage": "We could not complete the single sign-on redirection. Please try again.",
+  "@ssoRedirectFailedMessage": {
+    "type": "text",
+    "placeholders_order": [],
+    "placeholders": {}
+  },
   "moveFolder": "Move folder",
   "@moveFolder": {
     "type": "text",
@@ -1638,6 +1644,12 @@
     "placeholders_order": [],
     "placeholders": {}
   },
+  "languageMongolian": "Mongolian",
+  "@languageMongolian": {
+    "type": "text",
+    "placeholders_order": [],
+    "placeholders": {}
+  },
   "languageVietnamese": "Vietnamese",
   "@languageVietnamese": {
     "type": "text",
@@ -1664,12 +1676,6 @@
   },
   "languageItalian": "Italian",
   "@languageItalian": {
-    "type": "text",
-    "placeholders_order": [],
-    "placeholders": {}
-  },
-  "languageMongolian": "Mongolian",
-  "@languageMongolian": {
     "type": "text",
     "placeholders_order": [],
     "placeholders": {}
