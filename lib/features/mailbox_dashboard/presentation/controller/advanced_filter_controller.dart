@@ -33,15 +33,9 @@ import 'package:tmail_ui_user/main/routes/route_navigation.dart';
 class AdvancedFilterController extends BaseController {
   GetAutoCompleteInteractor? _getAutoCompleteInteractor;
 
-  final receiveTimeType = EmailReceiveTimeType.allTime.obs;
-  final hasAttachment = false.obs;
-  final isStarred = false.obs;
-  final isUnread = false.obs;
-  final notIncludeEvents = false.obs;
-  final startDate = Rxn<DateTime>();
-  final endDate = Rxn<DateTime>();
-  final sortOrderType = SearchEmailFilter.defaultSortOrder.obs;
-  final destinationMailboxSelected = Rxn<PresentationMailbox>();
+  // `label` is the only field written on Apply (not live), so it keeps a shadow.
+  // Every other field reads the committed SSOT directly (via a Consumer in the
+  // advanced-search widgets); it no longer has a duplicate obs here.
   final selectedLabel = Rxn<Label>();
 
   final GlobalKey<TagsEditorState> keyFromEmailTagEditor = GlobalKey<TagsEditorState>();
@@ -87,14 +81,12 @@ class AdvancedFilterController extends BaseController {
   }
 
   void _setUpDefaultSortOrder(EmailSortOrderType emailSortOrderType) {
-    sortOrderType.value = emailSortOrderType;
     // Sync only the sort field so any filters already committed by other search
     // surfaces are preserved.
     _updateCommittedFilter(sortOrderTypeOption: Some(emailSortOrderType));
   }
 
   void _updateSortOrder(EmailSortOrderType emailSortOrderType) {
-    sortOrderType.value = emailSortOrderType;
     _updateCommittedFilter(sortOrderTypeOption: Some(emailSortOrderType));
   }
 
@@ -109,7 +101,7 @@ class AdvancedFilterController extends BaseController {
 
   @visibleForTesting
   void setDestinationMailboxSelected(PresentationMailbox? presentationMailbox) {
-    destinationMailboxSelected.value = presentationMailbox;
+    _updateCommittedFilter(mailboxOption: optionOf(presentationMailbox));
   }
 
   MailboxDashBoardController get mailboxDashBoardController => _mailboxDashBoardController;
@@ -167,35 +159,40 @@ class AdvancedFilterController extends BaseController {
       listToEmailAddress.isNotEmpty,
       listToEmailAddress.asSetAddress());
 
-    final sortOrderTypeOption = Some(sortOrderType.value);
+    // The scalar fields already live on the committed SSOT; re-read them from
+    // there. This method still exists to flush the un-blurred text fields and
+    // the from/to tag lists on Apply.
+    final committed = _committedFilter;
 
-    final mailboxOption = optionOf(destinationMailboxSelected.value);
+    final sortOrderTypeOption = Some(committed.sortOrderType);
+
+    final mailboxOption = optionOf(committed.mailbox);
 
     final subjectOption = option(
       subjectFilterInputController.text.trim().isNotEmpty,
       subjectFilterInputController.text.trim());
 
-    final emailReceiveTimeTypeOption = Some(receiveTimeType.value);
+    final emailReceiveTimeTypeOption = Some(committed.emailReceiveTimeType);
 
-    final hasAttachmentOption = Some(hasAttachment.value);
+    final hasAttachmentOption = Some(committed.hasAttachment);
 
     final Option<UTCDate> startDateOption;
     final Option<UTCDate> endDateOption;
-    if (receiveTimeType.value == EmailReceiveTimeType.customRange) {
-      startDateOption = optionOf(startDate.value?.toUTCDate());
-      endDateOption = optionOf(endDate.value?.toUTCDate());
+    if (committed.emailReceiveTimeType == EmailReceiveTimeType.customRange) {
+      startDateOption = optionOf(committed.startDate);
+      endDateOption = optionOf(committed.endDate);
     } else {
-      final dateRange = receiveTimeType.value.toDateRange();
+      final dateRange = committed.emailReceiveTimeType.toDateRange();
       startDateOption = optionOf(dateRange.start);
       endDateOption = optionOf(dateRange.end);
     }
 
-    final unreadOption = Some(isUnread.value);
+    final unreadOption = Some(committed.unread);
 
-    final notIncludeEventsOption = Some(notIncludeEvents.value);
+    final notIncludeEventsOption = Some(committed.notIncludeEvents);
 
     final listKeywords = {
-      if (isStarred.isTrue) KeyWordIdentifier.emailFlagged.value,
+      if (committed.isContainFlagged) KeyWordIdentifier.emailFlagged.value,
     };
     final hasKeywordOption =
         optionOf(listKeywords.isNotEmpty ? listKeywords : null);
@@ -231,7 +228,7 @@ class AdvancedFilterController extends BaseController {
       accountId,
       MailboxActions.select,
       session,
-      mailboxIdSelected: destinationMailboxSelected.value?.id
+      mailboxIdSelected: _committedFilter.mailbox?.id
     );
 
     final destinationMailbox = PlatformInfo.isWeb
@@ -242,7 +239,6 @@ class AdvancedFilterController extends BaseController {
 
     if (destinationMailbox is! PresentationMailbox) return;
 
-    destinationMailboxSelected.value = destinationMailbox;
     _updateCommittedFilter(mailboxOption: optionOf(destinationMailbox));
   }
 
@@ -287,23 +283,10 @@ class AdvancedFilterController extends BaseController {
     notKeyWordFilterInputController.text = StringConvert.writeNullToEmpty(
       _committedFilter.notKeyword.join(','));
 
-    receiveTimeType.value = _committedFilter.emailReceiveTimeType;
-
-    startDate.value = _committedFilter.startDate?.value.toLocal();
-    endDate.value = _committedFilter.endDate?.value.toLocal();
-
-    sortOrderType.value = _committedFilter.sortOrderType;
-
-    destinationMailboxSelected.value = _committedFilter.mailbox;
-
-    hasAttachment.value = _committedFilter.hasAttachment;
-
-    isUnread.value = _committedFilter.unread;
-
-    isStarred.value = _committedFilter.hasKeyword
-        .contains(KeyWordIdentifier.emailFlagged.value);
-
-    notIncludeEvents.value = _committedFilter.notIncludeEvents;
+    // Scalar fields (attachment, unread, starred, events, receive-time, sort,
+    // mailbox) are read live from the committed SSOT by the form's Consumer, so
+    // there is nothing to seed here. Only the text controllers, from/to tag
+    // lists, and the staged `label` need seeding.
 
     if (_committedFilter.from.isEmpty) {
       listFromEmailAddress.clear();
@@ -329,8 +312,8 @@ class AdvancedFilterController extends BaseController {
   void selectDateRange(BuildContext context) {
     searchController.showMultipleViewDateRangePicker(
       context,
-      startDate.value,
-      endDate.value,
+      _committedFilter.startDate?.value.toLocal(),
+      _committedFilter.endDate?.value.toLocal(),
       onCallbackAction: (startDate, endDate) =>
         _updateDateRangeTime(
           EmailReceiveTimeType.customRange,
@@ -341,15 +324,11 @@ class AdvancedFilterController extends BaseController {
   }
 
   void _updateDateRangeTime(EmailReceiveTimeType receiveTime, {DateTime? newStartDate, DateTime? newEndDate}) {
-    startDate.value = newStartDate;
-    endDate.value = newEndDate;
-    receiveTimeType.value = receiveTime;
-
     if (receiveTime == EmailReceiveTimeType.customRange) {
       _updateCommittedFilter(
         emailReceiveTimeTypeOption: Some(receiveTime),
-        startDateOption: optionOf(startDate.value?.toUTCDate()),
-        endDateOption: optionOf(endDate.value?.toUTCDate()),
+        startDateOption: optionOf(newStartDate?.toUTCDate()),
+        endDateOption: optionOf(newEndDate?.toUTCDate()),
       );
     } else {
       final dateRange = receiveTime.toDateRange();
@@ -365,8 +344,8 @@ class AdvancedFilterController extends BaseController {
     if (receiveTime == EmailReceiveTimeType.customRange) {
       searchController.showMultipleViewDateRangePicker(
         context,
-        startDate.value,
-        endDate.value,
+        _committedFilter.startDate?.value.toLocal(),
+        _committedFilter.endDate?.value.toLocal(),
         onCallbackAction: (startDate, endDate) =>
           _updateDateRangeTime(
             EmailReceiveTimeType.customRange,
@@ -485,20 +464,14 @@ class AdvancedFilterController extends BaseController {
 
   void updateSortOrder(EmailSortOrderType? sortOrder) {
     if (sortOrder != null) {
-      sortOrderType.value = sortOrder;
       _updateCommittedFilter(sortOrderTypeOption: Some(sortOrder));
     }
   }
 
   void _resetAllToOriginalValue() {
-    startDate.value = null;
-    endDate.value = null;
-    receiveTimeType.value = EmailReceiveTimeType.allTime;
-    hasAttachment.value = false;
-    isUnread.value = false;
-    isStarred.value = false;
-    notIncludeEvents.value = false;
-    destinationMailboxSelected.value = null;
+    // The scalar fields follow the committed SSOT, which the clear paths reset
+    // via `searchController.clearSearchFilter()`; only the local form state
+    // (from/to lists and the staged label) is reset here.
     listFromEmailAddress.clear();
     listToEmailAddress.clear();
     selectedLabel.value = null;
@@ -571,22 +544,19 @@ class AdvancedFilterController extends BaseController {
   }
 
   void onHasAttachmentCheckboxChanged(bool? isChecked) {
-    hasAttachment.value = isChecked ?? false;
-    _updateCommittedFilter(hasAttachmentOption: Some(hasAttachment.value));
+    _updateCommittedFilter(hasAttachmentOption: Some(isChecked ?? false));
   }
 
   void onStarredCheckboxChanged(bool? isChecked) {
-    isStarred.value = isChecked ?? false;
     _updateKeywordsSearchFilter(
-      isStarred.isTrue,
+      isChecked ?? false,
       KeyWordIdentifier.emailFlagged,
     );
   }
 
   void onUnreadCheckboxChanged(bool? isChecked) {
-    isUnread.value = isChecked ?? false;
     _updateCommittedFilter(
-      unreadOption: isUnread.isTrue ? const Some(true) : const None(),
+      unreadOption: (isChecked ?? false) ? const Some(true) : const None(),
     );
   }
 
@@ -603,9 +573,8 @@ class AdvancedFilterController extends BaseController {
   }
 
   void onEventsCheckboxChanged(bool? isChecked) {
-    notIncludeEvents.value = isChecked ?? false;
     _updateCommittedFilter(
-      notIncludeEventsOption: notIncludeEvents.isTrue ? const Some(true) : const None(),
+      notIncludeEventsOption: (isChecked ?? false) ? const Some(true) : const None(),
     );
   }
 
@@ -663,7 +632,7 @@ class AdvancedFilterController extends BaseController {
   }
 
   void _handleQuickSearchEmailByFromAction(EmailAddress emailAddress) {
-    searchController.clearSearchFilter(sortOrderType: sortOrderType.value);
+    searchController.clearSearchFilter(sortOrderType: _committedFilter.sortOrderType);
     _resetAllToOriginalValue();
     _clearAllTextFieldInput();
     searchController.searchInputController.clear();

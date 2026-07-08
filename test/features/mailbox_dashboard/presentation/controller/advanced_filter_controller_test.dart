@@ -2,6 +2,7 @@ import 'package:core/data/network/config/dynamic_url_interceptors.dart';
 import 'package:core/presentation/resources/image_paths.dart';
 import 'package:core/presentation/utils/app_toast.dart';
 import 'package:core/presentation/utils/responsive_utils.dart';
+import 'package:dartz/dartz.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
@@ -176,11 +177,13 @@ void main() {
         advancedFilterController.notKeyWordFilterInputController.text = 'dab';
         advancedFilterController.listFromEmailAddress = [EmailAddress(null, 'user1@example.com')];
         advancedFilterController.listToEmailAddress = [EmailAddress(null, 'user2@example.com')];
-        advancedFilterController.sortOrderType.value = EmailSortOrderType.oldest;
         advancedFilterController.setDestinationMailboxSelected(PresentationMailbox.unifiedMailbox);
         advancedFilterController.subjectFilterInputController.text = 'Subject';
-        advancedFilterController.receiveTimeType.value = EmailReceiveTimeType.last7Days;
-        advancedFilterController.hasAttachment.value = true;
+        appProviderContainer.read(searchFilterProvider.notifier).update(
+          sortOrderTypeOption: const Some(EmailSortOrderType.oldest),
+          emailReceiveTimeTypeOption: const Some(EmailReceiveTimeType.last7Days),
+          hasAttachmentOption: const Some(true),
+        );
 
         // Act
         advancedFilterController.applyAdvancedSearchFilter();
@@ -225,15 +228,18 @@ void main() {
         expect(advancedFilterController.subjectFilterInputController.text, equals('subject'));
         expect(advancedFilterController.hasKeyWordFilterInputController.text, equals('hello'));
         expect(advancedFilterController.notKeyWordFilterInputController.text, equals('hello,nice'));
-        expect(advancedFilterController.receiveTimeType.value, equals(EmailReceiveTimeType.last7Days));
-        expect(advancedFilterController.sortOrderType.value, equals(EmailSortOrderType.oldest));
-        expect(advancedFilterController.hasAttachment.value, equals(true));
+        // Scalar fields now live on the committed SSOT; assert initSearchFilterField
+        // did not disturb them.
+        final committed = appProviderContainer.read(searchFilterProvider);
+        expect(committed.emailReceiveTimeType, equals(EmailReceiveTimeType.last7Days));
+        expect(committed.sortOrderType, equals(EmailSortOrderType.oldest));
+        expect(committed.hasAttachment, equals(true));
         expect(advancedFilterController.listFromEmailAddress, equals([EmailAddress(null, 'user1@example.com')]));
         expect(advancedFilterController.listToEmailAddress, equals([EmailAddress(null, 'user2@example.com')]));
       });
 
       test(
-        'SHOULD seed startDate and endDate from the committed custom range\n'
+        'SHOULD keep the committed custom range untouched\n'
         'WHEN initSearchFilterField is called',
       () async {
         // Arrange
@@ -250,9 +256,10 @@ void main() {
         advancedFilterController.initSearchFilterField(mockBuildContext);
 
         // Assert
-        expect(advancedFilterController.receiveTimeType.value, equals(EmailReceiveTimeType.customRange));
-        expect(advancedFilterController.startDate.value, equals(start.value.toLocal()));
-        expect(advancedFilterController.endDate.value, equals(end.value.toLocal()));
+        final committed = appProviderContainer.read(searchFilterProvider);
+        expect(committed.emailReceiveTimeType, equals(EmailReceiveTimeType.customRange));
+        expect(committed.startDate, equals(start));
+        expect(committed.endDate, equals(end));
       });
 
       test(

@@ -3,10 +3,13 @@ import 'package:core/presentation/views/checkbox/custom_icon_labeled_checkbox.da
 import 'package:core/presentation/views/dialog/confirm_dialog_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
 import 'package:tmail_ui_user/features/base/model/ui_keys.dart';
 import 'package:tmail_ui_user/features/mailbox_dashboard/presentation/controller/advanced_filter_controller.dart';
 import 'package:tmail_ui_user/features/mailbox_dashboard/presentation/controller/input_field_focus_manager.dart';
+import 'package:tmail_ui_user/features/mailbox_dashboard/presentation/model/search/search_email_filter.dart';
+import 'package:tmail_ui_user/features/search/email/domain/notifier/search_filter_notifier.dart';
 import 'package:tmail_ui_user/main/localizations/app_localizations.dart';
 import 'package:tmail_ui_user/main/routes/route_navigation.dart';
 
@@ -21,34 +24,46 @@ class AdvancedSearchFilterFormBottomView extends GetWidget<AdvancedFilterControl
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Wrap(
-          runSpacing: 12,
-          spacing: 24,
+    // Single Consumer for the whole view: the checkboxes read their state
+    // straight from the committed SSOT, so an edit on any other search surface
+    // is reflected here live.
+    return Consumer(
+      builder: (context, ref, _) {
+        final filter = ref.watch(searchFilterProvider);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildCheckboxHasAttachment(
-              context,
-              focusManager.attachmentCheckboxFocusNode,
+            Wrap(
+              runSpacing: 12,
+              spacing: 24,
+              children: [
+                _buildCheckboxHasAttachment(
+                  context,
+                  filter,
+                  focusManager.attachmentCheckboxFocusNode,
+                ),
+                _buildCheckboxUnread(
+                  context,
+                  filter,
+                  focusManager.unreadCheckboxFocusNode,
+                ),
+                _buildCheckboxStarred(
+                  context,
+                  filter,
+                  focusManager.starredCheckboxFocusNode,
+                ),
+                _buildCheckboxEvents(
+                  context,
+                  filter,
+                  focusManager.eventsCheckboxFocusNode,
+                ),
+              ],
             ),
-            _buildCheckboxUnread(
-              context,
-              focusManager.unreadCheckboxFocusNode,
-            ),
-            _buildCheckboxStarred(
-              context,
-              focusManager.starredCheckboxFocusNode,
-            ),
-            _buildCheckboxEvents(
-              context,
-              focusManager.eventsCheckboxFocusNode,
-            ),
+            const SizedBox(height: 25),
+            _buildListButton(context),
           ],
-        ),
-        const SizedBox(height: 25),
-        _buildListButton(context),
-      ],
+        );
+      },
     );
   }
 
@@ -95,70 +110,66 @@ class AdvancedSearchFilterFormBottomView extends GetWidget<AdvancedFilterControl
 
   Widget _buildCheckboxHasAttachment(
       BuildContext context,
+      SearchEmailFilter filter,
       FocusNode currentFocusNode,
   ) {
-    return Obx(
-      () => CustomIconLabeledCheckbox(
-        key: const ValueKey(UiKeys.advancedSearchHasAttachmentCheckbox),
-        label: AppLocalizations.of(context).hasAttachment,
-        svgIconPath: controller.imagePaths.icCheckboxUnselected,
-        selectedSvgIconPath: controller.imagePaths.icCheckboxSelected,
-        focusNode: currentFocusNode,
-        gap: 8.0,
-        value: controller.hasAttachment.value,
-        onChanged: controller.onHasAttachmentCheckboxChanged,
-      ),
+    return CustomIconLabeledCheckbox(
+      key: const ValueKey(UiKeys.advancedSearchHasAttachmentCheckbox),
+      label: AppLocalizations.of(context).hasAttachment,
+      svgIconPath: controller.imagePaths.icCheckboxUnselected,
+      selectedSvgIconPath: controller.imagePaths.icCheckboxSelected,
+      focusNode: currentFocusNode,
+      gap: 8.0,
+      value: filter.hasAttachment,
+      onChanged: controller.onHasAttachmentCheckboxChanged,
     );
   }
 
   Widget _buildCheckboxStarred(
     BuildContext context,
+    SearchEmailFilter filter,
     FocusNode currentFocusNode,
   ) {
-    return Obx(
-      () => CustomIconLabeledCheckbox(
-        label: AppLocalizations.of(context).starred,
-        svgIconPath: controller.imagePaths.icCheckboxUnselected,
-        selectedSvgIconPath: controller.imagePaths.icCheckboxSelected,
-        focusNode: currentFocusNode,
-        gap: 8.0,
-        value: controller.isStarred.value,
-        onChanged: controller.onStarredCheckboxChanged,
-      ),
+    return CustomIconLabeledCheckbox(
+      label: AppLocalizations.of(context).starred,
+      svgIconPath: controller.imagePaths.icCheckboxUnselected,
+      selectedSvgIconPath: controller.imagePaths.icCheckboxSelected,
+      focusNode: currentFocusNode,
+      gap: 8.0,
+      value: filter.isContainFlagged,
+      onChanged: controller.onStarredCheckboxChanged,
     );
   }
 
   Widget _buildCheckboxUnread(
     BuildContext context,
+    SearchEmailFilter filter,
     FocusNode currentFocusNode,
   ) {
-    return Obx(
-      () => CustomIconLabeledCheckbox(
-        label: AppLocalizations.of(context).unread,
-        svgIconPath: controller.imagePaths.icCheckboxUnselected,
-        selectedSvgIconPath: controller.imagePaths.icCheckboxSelected,
-        focusNode: currentFocusNode,
-        gap: 8.0,
-        value: controller.isUnread.value,
-        onChanged: controller.onUnreadCheckboxChanged,
-      ),
+    return CustomIconLabeledCheckbox(
+      label: AppLocalizations.of(context).unread,
+      svgIconPath: controller.imagePaths.icCheckboxUnselected,
+      selectedSvgIconPath: controller.imagePaths.icCheckboxSelected,
+      focusNode: currentFocusNode,
+      gap: 8.0,
+      value: filter.unread,
+      onChanged: controller.onUnreadCheckboxChanged,
     );
   }
 
   Widget _buildCheckboxEvents(
     BuildContext context,
+    SearchEmailFilter filter,
     FocusNode currentFocusNode,
   ) {
-    return Obx(
-      () => CustomIconLabeledCheckbox(
-        label: AppLocalizations.of(context).notIncludeEvents,
-        svgIconPath: controller.imagePaths.icCheckboxUnselected,
-        selectedSvgIconPath: controller.imagePaths.icCheckboxSelected,
-        focusNode: currentFocusNode,
-        gap: 8.0,
-        value: controller.notIncludeEvents.value,
-        onChanged: controller.onEventsCheckboxChanged,
-      ),
+    return CustomIconLabeledCheckbox(
+      label: AppLocalizations.of(context).notIncludeEvents,
+      svgIconPath: controller.imagePaths.icCheckboxUnselected,
+      selectedSvgIconPath: controller.imagePaths.icCheckboxSelected,
+      focusNode: currentFocusNode,
+      gap: 8.0,
+      value: filter.notIncludeEvents,
+      onChanged: controller.onEventsCheckboxChanged,
     );
   }
 
