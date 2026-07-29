@@ -31,15 +31,18 @@ class WorkplaceDataSourceImpl implements WorkplaceDataSource {
     WorkplaceActionConfig? addAsAttachment,
   }) async {
     final response = await WorkplaceDio.instance.post(
-      platformUrl.replace(
-        pathSegments: [
-          ...platformUrl.pathSegments.where((segment) => segment.isNotEmpty),
-          'intents',
-        ],
-      ).toString(),
-      options: Options(
-        headers: {'Authorization': 'Bearer $accessToken'},
-      ),
+      platformUrl
+          .replace(
+            pathSegments: [
+              ...platformUrl.pathSegments.where(
+                (segment) => segment.isNotEmpty,
+              ),
+              'intents',
+            ],
+          )
+          .toString(),
+      queryParameters: {'force_session_id': 'true'},
+      options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
       data: _buildIntentRequest(
         addAsLink: addAsLink,
         addAsAttachment: addAsAttachment,
@@ -52,6 +55,7 @@ class WorkplaceDataSourceImpl implements WorkplaceDataSource {
     dynamic data, {
     bool requireHttps = kReleaseMode,
   }) {
+    print('DMM $data');
     final parsed = WorkplaceIntentResponse.fromJson(_asJsonMap(data));
     final services = parsed.data.attributes.services;
     if (services.isEmpty) {
@@ -90,22 +94,26 @@ class WorkplaceDataSourceImpl implements WorkplaceDataSource {
   @override
   Future<String> exchangeToken(Uri platformUrl, String oidcIdToken) async {
     final response = await WorkplaceDio.instance.post(
-      platformUrl.replace(
-        pathSegments: [
-          ...platformUrl.pathSegments.where((segment) => segment.isNotEmpty),
-          'auth',
-          'token_exchange',
-        ],
-      ).toString(),
-      options: Options(
-        headers: {'Accept': 'application/json'},
-      ),
+      platformUrl
+          .replace(
+            pathSegments: [
+              ...platformUrl.pathSegments.where(
+                (segment) => segment.isNotEmpty,
+              ),
+              'auth',
+              'token_exchange',
+            ],
+          )
+          .toString(),
+      options: Options(headers: {'Accept': 'application/json'}),
       data: WorkplaceExchangeTokenRequest(
         idToken: oidcIdToken,
         exchangeType: WorkplaceExchangeType.app,
       ).toJson(),
     );
-    final data = WorkplaceExchangeTokenResponse.fromJson(_asJsonMap(response.data));
+    final data = WorkplaceExchangeTokenResponse.fromJson(
+      _asJsonMap(response.data),
+    );
     final accessToken = data.accessToken;
     return accessToken;
   }

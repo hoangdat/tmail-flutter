@@ -33,6 +33,11 @@ class _DriveIntentWebViewModalState extends State<DriveIntentWebViewModal>
     with DriveIntentMessageHandlerMixin {
   InAppWebViewController? _webViewController;
 
+  // The shim can only forward the page-supplied targetOrigin, which isn't a
+  // sender origin and isn't trustworthy. See [validatesMessageOrigin].
+  @override
+  bool get validatesMessageOrigin => false;
+
   @override
   void initState() {
     super.initState();
@@ -104,12 +109,15 @@ class _DriveIntentWebViewModalState extends State<DriveIntentWebViewModal>
     // so `event.data` in the page ends up a real object, not a JSON string —
     // Drive's getFilePickerConfig never calls JSON.parse on it.
     final payload = jsonEncode(widget.filePickerConfig.toJson());
-    _webViewController?.evaluateJavascript(source: '''
+    _webViewController?.evaluateJavascript(
+      source:
+          '''
       window.dispatchEvent(new MessageEvent('message', {
         data: $payload,
         origin: '$intentOrigin',
         source: window
       }));
-    ''');
+    ''',
+    );
   }
 }
