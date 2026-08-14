@@ -44,7 +44,7 @@ found reviewing it (the duplicate-token guard, see Key decisions).
 
 - **ADR-0105 is the design; this plan does not relitigate it.** The alternative
   (routing the XHR through the app Dio behind a custom `HttpClientAdapter`) was
-  planned, red-teamed, and rejected — see "Superseded approach" below.
+  planned, red-teamed, and rejected — see "Rejected alternative" below.
 - **G1 — the one ADR gap this plan closes.** ADR-0105 says
   `_refreshTokenThenRetry` is refactored to call the shared memo, but does not
   mention the duplicate-token guard at
@@ -77,11 +77,12 @@ this branch (verified: `DriveTransferPipeline`, `ResolveAuthHeader` and
   mapping is `lib/features/upload/presentation/controller/upload_controller.dart:98`
   and `:154`. Phase 4 records this handoff.
 
-## Superseded approach
+## Rejected alternative: routing the XHR through the app Dio
 
-`plans/260813-0952-drive-opfs-upload-token-refresh/` planned the adapter route.
-Three hostile reviewers found it unimplementable; the decisive findings, all
-verified against source:
+The obvious alternative — keep raw XHR but put it behind a custom
+`HttpClientAdapter` on the app Dio, so `AuthorizationInterceptors` handles the 401
+with no new auth code — was planned in full and then abandoned. Three decisive
+findings, all verified against source:
 - Routing the upload through Dio puts its 401 retry inside
   `QueuedInterceptorsWrapper`'s single `_errorQueue`
   (`dio-5.2.0/lib/src/interceptor.dart:364-410`), and `_performRetry` awaits the
@@ -93,7 +94,10 @@ verified against source:
   would ride onto every OPFS upload with an empty mime type — the normal case.
 - `workplace` has no `get` dependency and no route to the app's Dio.
 
-Red-team reports are preserved in that plan's `reports/` directory.
+Worth re-reading before anyone proposes the adapter again: the first bullet is the
+same unbounded-stall failure that finding #15 later found hiding in *this* design's
+refresh memo. The stall is a property of `QueuedInterceptorsWrapper`, not of any
+one approach — whatever the design, check what can be awaited inside `onError`.
 
 ## Red Team Review
 

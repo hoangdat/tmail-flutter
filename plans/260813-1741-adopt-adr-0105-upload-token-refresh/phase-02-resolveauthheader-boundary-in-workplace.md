@@ -83,8 +83,8 @@ Modify — tests (5 files; all construct or assert on `authHeader`):
 - `workplace/test/data/datasource/drive_transfer/buffered_web_drive_file_stager_test.dart`
 
 The last two only *construct* `DriveTransferRequest` as fixture setup — they are
-otherwise untouched, but they will not compile until updated. (The superseded plan
-wrongly listed them as untouched; that error is corrected here.)
+otherwise untouched, but they will not compile until updated — a detail easy to
+miss, since neither test exercises auth.
 
 ## Implementation Steps
 
