@@ -763,7 +763,9 @@ class ThreadController extends BaseController with EmailActionController {
       if (selectedMailbox?.isVirtualFolder == true) return;
       if (currentMailboxId != selectedMailboxId) return;
     }
-    _beginList(keepGiveUp: true);
+    if (shouldCollapseThreads) {
+      _beginList(keepGiveUp: true);
+    }
     mailboxDashBoardController.setCurrentEmailState(success.currentEmailState);
     log('ThreadController::_refreshChangesAllEmailSuccess: COUNT = ${success.emailList.length}');
     final emailsBeforeChanges = mailboxDashBoardController.emailsInCurrentMailbox;
@@ -852,9 +854,10 @@ class ThreadController extends BaseController with EmailActionController {
   }
 
   UnsignedInt get limitEmailFetched {
-    return _peakEmailCount == 0
-        ? ThreadConstants.defaultLimit
-        : UnsignedInt(_peakEmailCount);
+    if (_peakEmailCount == 0) {
+      return ThreadConstants.defaultLimit;
+    }
+    return UnsignedInt(min(_peakEmailCount, _maxObjectsInGet));
   }
 
   void _refreshEmailChanges({required jmap.State newState}) {
@@ -939,7 +942,9 @@ class ThreadController extends BaseController with EmailActionController {
 
   Future<void> _refreshChangeListEmailsInVirtualFolder() async {
     log('ThreadController::_refreshChangeListEmailsInVirtualFolder:');
-    _beginList(keepGiveUp: true);
+    if (shouldCollapseThreads) {
+      _beginList(keepGiveUp: true);
+    }
     final token = _pager.token;
 
     await _refreshChangeListEmailCache();
@@ -1045,10 +1050,17 @@ class ThreadController extends BaseController with EmailActionController {
     return email.mailboxIds != null && email.mailboxIds!.keys.contains(selectedMailboxId);
   }
 
+  Object? _collapsedRowKey(PresentationEmail email) {
+    return shouldCollapseThreads ? (email.threadId ?? email.id) : email.id;
+  }
+
   bool _notDuplicatedInCurrentList(PresentationEmail email) {
     final emailsInCurrentMailbox = mailboxDashBoardController.emailsInCurrentMailbox;
-    return emailsInCurrentMailbox.isEmpty ||
-      !emailsInCurrentMailbox.map((element) => element.id).contains(email.id);
+    if (emailsInCurrentMailbox.isEmpty) return true;
+    final incomingKey = _collapsedRowKey(email);
+    return emailsInCurrentMailbox.every(
+      (listed) => _collapsedRowKey(listed) != incomingKey,
+    );
   }
 
   void _loadMoreEmailsSuccess(LoadMoreEmailsSuccess success) {
@@ -1168,6 +1180,7 @@ class ThreadController extends BaseController with EmailActionController {
       onDataFailureViewState(failure);
       if (failure is FeatureFailure &&
           validateUrgentException(failure.exception)) {
+        _pager.abandonResync();
         return;
       }
     }
@@ -1209,7 +1222,10 @@ class ThreadController extends BaseController with EmailActionController {
           .last;
     } catch (error, stackTrace) {
       onError(error, stackTrace);
-      if (validateUrgentException(error)) return;
+      if (validateUrgentException(error)) {
+        _pager.abandonResync();
+        return;
+      }
       if (!_pager.isCurrent(token)) return;
       _onResyncFailed(null, listedCount);
       return;
@@ -1221,6 +1237,9 @@ class ThreadController extends BaseController with EmailActionController {
     if (success is GetAllEmailSuccess) {
       _applyResyncResult(success, listedCount);
       _completeOwnedLoadMore();
+      if (_isAutoLoadMore && canLoadMore) {
+        _performAutomaticallyLoadMoreEmails();
+      }
       return;
     }
 

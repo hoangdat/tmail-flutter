@@ -724,6 +724,38 @@ void main() {
         expect(controller.handleUrgentExceptionCount, 1);
         expect(controller.canLoadMore, isFalse);
         expect(controller.loadingMoreStatus.value, statusBefore);
+
+        controller.canLoadMore = true;
+        controller.loadingMoreStatus.value = LoadingMoreStatus.completed;
+        stubListReadAgainReturns(makeEmails(2 * pageSize));
+        clearInteractions(mockGetEmailsInMailboxInteractor);
+        await loadMoreOverlappingPage(controller);
+
+        expect(verifyListReadAgain().callCount, 1);
+      });
+
+      test(
+        'GIVEN a collapsed list re-read throws BadCredentialsException '
+        'WHEN another overlapping page arrives at the same size '
+        'THEN the list SHOULD be read again',
+      () async {
+        final controller = createController();
+        stubListReadAgain(
+          () => Stream<Either<Failure, Success>>.error(
+            const BadCredentialsException(),
+          ),
+        );
+        await loadMoreOverlappingPage(controller);
+
+        expect(controller.handleUrgentExceptionCount, 1);
+
+        controller.canLoadMore = true;
+        controller.loadingMoreStatus.value = LoadingMoreStatus.completed;
+        stubListReadAgainReturns(makeEmails(2 * pageSize));
+        clearInteractions(mockGetEmailsInMailboxInteractor);
+        await loadMoreOverlappingPage(controller);
+
+        expect(verifyListReadAgain().callCount, 1);
       });
 
       test(
@@ -785,6 +817,131 @@ void main() {
         verifyListNotReadAgain();
         expect(controller.canLoadMore, isFalse);
         expect(controller.loadingMoreStatus.value, LoadingMoreStatus.completed);
+      });
+
+      test(
+        'GIVEN a collapsed thread is already listed '
+        'WHEN load-more returns a new email of that thread '
+        'THEN that email SHOULD not be appended AND a new thread SHOULD',
+      () async {
+        final controller = createController(listedCount: 1);
+        final threadId = ThreadId(Id('same-thread'));
+        final listedId = displayedEmails.first.id;
+        displayedEmails.assignAll([
+          displayedEmails.first.copyWith(threadId: threadId),
+        ]);
+        final newerHead = PresentationEmail(
+          id: EmailId(Id('newer-head')),
+          mailboxIds: {mailboxId: true},
+          threadId: threadId,
+        );
+        final nextThread = PresentationEmail(
+          id: EmailId(Id('other-thread-head')),
+          mailboxIds: {mailboxId: true},
+          threadId: ThreadId(Id('other-thread')),
+        );
+
+        await loadMorePage(
+          controller,
+          [newerHead, nextThread],
+          serverEmailCount: 2,
+        );
+
+        expect(
+          displayedEmails.map((email) => email.id),
+          [listedId, nextThread.id],
+        );
+      });
+
+      test(
+        'GIVEN thread view is off '
+        'WHEN load-more returns a new email of a listed thread '
+        'THEN that email SHOULD still be appended',
+      () async {
+        final controller = createController(
+          collapseThreads: false,
+          listedCount: 1,
+        );
+        final threadId = ThreadId(Id('same-thread'));
+        final listedId = displayedEmails.first.id;
+        displayedEmails.assignAll([
+          displayedEmails.first.copyWith(threadId: threadId),
+        ]);
+        final newerHead = PresentationEmail(
+          id: EmailId(Id('newer-head')),
+          mailboxIds: {mailboxId: true},
+          threadId: threadId,
+        );
+
+        await loadMorePage(controller, [newerHead], serverEmailCount: 1);
+
+        expect(
+          displayedEmails.map((email) => email.id),
+          [listedId, newerHead.id],
+        );
+      });
+
+      test(
+        'GIVEN thread view is off and a load-more page is pending '
+        'WHEN a websocket refresh arrives '
+        'THEN the pending page SHOULD still be appended',
+      () async {
+        final controller = createController(collapseThreads: false);
+        final emailAction = Rxn<EmailUIAction>();
+        when(mockMailboxDashBoardController.emailUIAction)
+            .thenReturn(emailAction);
+        when(mockMailboxDashBoardController.dashBoardAction)
+            .thenReturn(Rxn());
+        when(mockMailboxDashBoardController.viewState)
+            .thenReturn(Rx(Right(UIState.idle)));
+        when(mockMailboxDashBoardController.currentEmailState)
+            .thenReturn(jmap.State('old-state'));
+        when(mockMailboxDashBoardController.isEmailListDisplayed)
+            .thenReturn(false);
+        when(mockMailboxDashBoardController.isFirstSessionLoad)
+            .thenReturn(false);
+        when(mockRefreshChangesEmailsInMailboxInteractor.execute(
+          any,
+          any,
+          any,
+          sort: anyNamed('sort'),
+          limit: anyNamed('limit'),
+          propertiesCreated: anyNamed('propertiesCreated'),
+          propertiesUpdated: anyNamed('propertiesUpdated'),
+          emailFilter: anyNamed('emailFilter'),
+          collapseThreads: anyNamed('collapseThreads'),
+        )).thenAnswer(
+          (_) => Stream.value(Right(RefreshChangesAllEmailSuccess(
+            emailList: displayedEmails.toList(),
+            currentMailboxId: mailboxId,
+            currentEmailState: jmap.State('new-state'),
+          ))),
+        );
+        controller.onInit();
+        final pendingPage = StreamController<Either<Failure, Success>>();
+        addTearDown(pendingPage.close);
+        when(mockLoadMoreEmailsInMailboxInteractor.execute(any))
+            .thenAnswer((_) => pendingPage.stream);
+        controller.handleLoadMoreEmailsRequest();
+        await pumpEventQueue();
+
+        emailAction.value = RefreshChangeEmailAction(
+          newState: jmap.State('new-state'),
+        );
+        await pumpEventQueue();
+
+        final extra = makeEmails(3, from: 200);
+        pendingPage.add(Right(LoadMoreEmailsSuccess(
+          extra,
+          serverEmailCount: extra.length,
+        )));
+        await pendingPage.close();
+        await pumpEventQueue();
+
+        expect(
+          displayedEmails.map((email) => email.id),
+          containsAll(extra.map((email) => email.id)),
+        );
       });
 
       test(
@@ -925,6 +1082,61 @@ void main() {
 
         expect(verifyListReadAgain().callCount, 1);
         expect(controller.listEmailController.offset, 500);
+      });
+
+      testWidgets(
+        'GIVEN threads are collapsed and the list does not fill the viewport '
+        'WHEN the list is read again longer '
+        'THEN load-more SHOULD continue automatically',
+      (tester) async {
+        final controller = createController();
+        await tester.pumpWidget(MaterialApp(
+          home: SizedBox(
+            height: 2000,
+            child: ListView.builder(
+              controller: controller.listEmailController,
+              itemCount: 1,
+              itemExtent: 1,
+              itemBuilder: (_, index) => const SizedBox(),
+            ),
+          ),
+        ));
+        stubListReadAgainReturns(makeEmails(2 * pageSize));
+        var loadMoreCalls = 0;
+        when(mockLoadMoreEmailsInMailboxInteractor.execute(any)).thenAnswer((_) {
+          loadMoreCalls++;
+          if (loadMoreCalls == 1) {
+            return Stream.value(Right(LoadMoreEmailsSuccess(
+              displayedEmails.take(pageSize).toList(),
+              serverEmailCount: pageSize,
+            )));
+          }
+          if (loadMoreCalls == 2) {
+            return Stream.value(Right(LoadMoreEmailsSuccess(
+              makeEmails(pageSize, from: 1000),
+              serverEmailCount: pageSize,
+            )));
+          }
+          return Stream.value(Right(LoadMoreEmailsSuccess(
+            const [],
+            serverEmailCount: 0,
+          )));
+        });
+
+        await tester.runAsync(() async {
+          controller.handleLoadMoreEmailsRequest();
+          await pumpEventQueue();
+        });
+        await tester.pump();
+
+        expect(loadMoreCalls, greaterThanOrEqualTo(2));
+        final requests = verify(
+          mockLoadMoreEmailsInMailboxInteractor.execute(captureAny),
+        ).captured.cast<GetEmailRequest>();
+        expect(
+          requests.map((request) => request.position),
+          contains(2 * pageSize),
+        );
       });
     });
 
